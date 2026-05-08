@@ -7,6 +7,9 @@ WORKDIR=${WORKDIR:-rustc_bootstrap}/
 
 RUSTC_TARGET=${RUSTC_TARGET:-x86_64-unknown-linux-gnu}
 RUSTC_VERSION=${*-1.29.0}
+PARLEVEL=${PARLEVEL:-1}
+LLVM_PARLEVEL=${LLVM_PARLEVEL:-$PARLEVEL}
+COMPARE_WITH_OFFICIAL=${COMPARE_WITH_OFFICIAL:-1}
 RUN_RUSTC_SUF=""
 if [[ "$RUSTC_VERSION" == "1.29.0" ]]; then
     RUSTC_VERSION_NEXT=1.30.0
@@ -30,7 +33,7 @@ else
     echo "Unknown rustc version"
 fi
 
-MAKEFLAGS=-j${PARLEVEL:-8}
+MAKEFLAGS=-j${LLVM_PARLEVEL}
 export MAKEFLAGS
 
 echo "=== Building stage0 rustc (with libstd)"
@@ -55,6 +58,7 @@ cat - > ${WORKDIR}mrustc/rustc-${RUSTC_VERSION_NEXT}-src/config.toml <<EOF
 [build]
 cargo = "${PREFIX}bin/cargo"
 rustc = "${PREFIX}bin/rustc"
+jobs = ${PARLEVEL}
 full-bootstrap = true
 vendor = true
 extended = true
@@ -83,11 +87,13 @@ mv ${WORKDIR}output ${WORKDIR}mrustc-output
 #
 # Build rustc by downloading the previous version of rustc (and its matching cargo)
 #
+if [ "${COMPARE_WITH_OFFICIAL}" != "0" ]; then
 echo "=== Building rustc bootstrap downloaded stage0"
 mkdir -p ${WORKDIR}official/
 tar -xzf rustc-${RUSTC_VERSION_NEXT}-src.tar.gz -C ${WORKDIR}official/
 cat - > ${WORKDIR}official/rustc-${RUSTC_VERSION_NEXT}-src/config.toml <<EOF
 [build]
+jobs = ${PARLEVEL}
 full-bootstrap = true
 vendor = true
 extended = true
@@ -111,3 +117,4 @@ mv ${WORKDIR}output ${WORKDIR}official-output
 # Compare mrustc-built and official build artifacts
 #
 diff -qs ${WORKDIR}mrustc.tar.gz ${WORKDIR}official.tar.gz
+fi

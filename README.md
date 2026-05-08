@@ -33,6 +33,14 @@ Getting Started
 
 You can set the number of jobs (parallel builds) by setting the enviromment variable `PARLEVEL`, e.g. `PARLEVEL=$(nproc)` for CPU core count. This can and will break at times, as such outside of toying around, it's best to do `PARLEVEL=1` or let mrustc figure it out by itself.
 
+If you only want LLVM parallel and everything else serialised, set `LLVM_PARLEVEL` separately, e.g. `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-1.90.0.sh`.
+
+LLVM is configured to build static libraries, not shared LLVM libraries.
+
+To bootstrap the next validated compiler from the mrustc-built 1.90.0 toolchain, run `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-1.91.1.sh`. This produces `output-1.91.1/`. Set `COMPARE_WITH_OFFICIAL=1` if you also want to build the official-bootstrap copy and compare the resulting archives.
+
+Once `output-1.91.1/` exists, you can keep walking forward with the official bootstrap using `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-official-step.sh 1.91.1 1.92.0`, or build a whole chain with `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-official-chain.sh 1.91.1 stable`. The known validated chain to current stable is `1.91.1 -> 1.92.0 -> 1.93.1 -> 1.94.1 -> 1.95.0`.
+
 Dependencies
 ------------
 - C++14-compatible compiler (tested with gcc 5.4 and gcc 6, and MSVC 2015)
@@ -131,4 +139,3 @@ Medium-term
 - Implement MIR borrow checker
 - Emit C code that is (more) human readable (uses names from the original source, reduced/no gotos)
 - Add alternate backends (e.g. LLVM IR, cretonne, ...)
-

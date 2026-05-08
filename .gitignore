@@ -13,6 +13,7 @@
 /rustc-*-src.tar.gz
 /rustc-*-src
 /rustc_bootstrap
+/rustc_bootstrap-*
 /crates.io
 /test_deps_run-pass.mk
 
