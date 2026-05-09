@@ -13,6 +13,29 @@ default_jobs() {
 	nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1
 }
 
+next_release() {
+	local major minor patch
+	IFS=. read -r major minor patch <<<"$1"
+	printf '%s.%s.0\n' "$major" "$((minor + 1))"
+}
+
+next_bootstrap_release() {
+	case "$1" in
+		1.91.1) printf '1.92.0\n' ;;
+		1.92.0) printf '1.93.1\n' ;;
+		1.93.1) printf '1.94.1\n' ;;
+		1.94.1) printf '1.95.0\n' ;;
+		*) next_release "$1" ;;
+	esac
+}
+
+EXPECTED_TO_VERSION="$(next_bootstrap_release "${FROM_VERSION}")"
+if [ "${TO_VERSION}" != "${EXPECTED_TO_VERSION}" ]; then
+	echo "build-official-step.sh only supports one bootstrap hop: ${FROM_VERSION} -> ${EXPECTED_TO_VERSION}" >&2
+	echo "use ./build-official-chain.sh ${FROM_VERSION} ${TO_VERSION}" >&2
+	exit 1
+fi
+
 default_rustc_target() {
 	local host_gnu_type
 	host_gnu_type="$(${CC:-cc} -dumpmachine 2>/dev/null || echo unknown)"
