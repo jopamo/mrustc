@@ -43,7 +43,7 @@ apply_rust_patches() {
 }
 
 echo "=== Building stage0 rustc (with libstd)"
-make -C run_rustc RUSTC_VERSION=${RUSTC_VERSION} PARLEVEL=${MRUSTC_PARLEVEL}
+make -j"${MRUSTC_PARLEVEL}" -C run_rustc RUSTC_VERSION=${RUSTC_VERSION} PARLEVEL=${MRUSTC_PARLEVEL}
 
 MAKEFLAGS=-j${LLVM_PARLEVEL}
 export MAKEFLAGS
