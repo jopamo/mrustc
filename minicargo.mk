@@ -266,18 +266,20 @@ ifeq ($(USE_MERGED_BUILD),1)
 $(RUSTCSRC)mrustc-stdlib/Cargo.toml: $(RUSTC_SRC_DL) minicargo.mk
 	@mkdir -p $(dir $@)
 	@echo "#![no_core]" > $(dir $@)/lib.rs
-	@echo "[package]" > $@
-	@echo "name = \"mrustc_standard_library\"" >> $@
-	@echo "version = \"0.0.0\"" >> $@
-	@echo "[lib]" >> $@
-	@echo "path = \"lib.rs\"" >> $@
-	@echo "[dependencies]" >> $@
-	@echo "std = { path = \"../$(RUST_LIB_PREFIX)std\" }" >> $@
-	@echo "panic_unwind = { path = \"../$(RUST_LIB_PREFIX)panic_unwind\" }" >> $@
-	@echo "test = { path = \"../$(RUST_LIB_PREFIX)test\" }" >> $@
-	@echo "rustc-std-workspace-core = { path = \"../$(RUST_LIB_PREFIX)rustc-std-workspace-core\" }" >> $@
-	@echo "rustc-std-workspace-alloc = { path = \"../$(RUST_LIB_PREFIX)rustc-std-workspace-alloc\" }" >> $@
-	@echo "rustc-std-workspace-std = { path = \"../$(RUST_LIB_PREFIX)rustc-std-workspace-std\" }" >> $@
+	@tmp="$@.tmp.$$"; { \
+		echo "[package]"; \
+		echo "name = \"mrustc_standard_library\""; \
+		echo "version = \"0.0.0\""; \
+		echo "[lib]"; \
+		echo "path = \"lib.rs\""; \
+		echo "[dependencies]"; \
+		echo "std = { path = \"../$(RUST_LIB_PREFIX)std\" }"; \
+		echo "panic_unwind = { path = \"../$(RUST_LIB_PREFIX)panic_unwind\" }"; \
+		echo "test = { path = \"../$(RUST_LIB_PREFIX)test\" }"; \
+		echo "rustc-std-workspace-core = { path = \"../$(RUST_LIB_PREFIX)rustc-std-workspace-core\" }"; \
+		echo "rustc-std-workspace-alloc = { path = \"../$(RUST_LIB_PREFIX)rustc-std-workspace-alloc\" }"; \
+		echo "rustc-std-workspace-std = { path = \"../$(RUST_LIB_PREFIX)rustc-std-workspace-std\" }"; \
+	} > "$$tmp" && mv "$$tmp" "$@"
 LIBS: $(RUSTCSRC)mrustc-stdlib/Cargo.toml $(MRUSTC) $(MINICARGO)
 	+STD_ENV_ARCH=$(RUSTC_ARCH) $(MINICARGO) --vendor-dir $(VENDOR_DIR) --script-overrides $(OVERRIDE_DIR) --output-dir $(OUTDIR) $(MINICARGO_FLAGS) $(RUSTCSRC)mrustc-stdlib/
 	+$(MINICARGO) --output-dir $(OUTDIR) $(MINICARGO_FLAGS) lib/libproc_macro
