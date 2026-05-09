@@ -464,7 +464,7 @@ namespace {
 
             tr.m_values.insert( ::std::make_pair(
                 RcString::new_interned("vtable#"),
-                ::HIR::TraitValueItem(::HIR::Static( ::HIR::Linkage(), false, ::HIR::TypeRef::new_path( mv$(path), {} ), {} ))
+                ::HIR::TraitValueItem(::HIR::Static( ::HIR::Linkage(), false, false, ::HIR::TypeRef::new_path( mv$(path), {} ), {} ))
                 ) );
         }
 

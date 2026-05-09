@@ -1675,6 +1675,7 @@ namespace {
                 ::HIR::Linkage  linkage;
                 rv.m_values.insert( ::std::make_pair(item.name, ::HIR::TraitValueItem::make_Static(::HIR::Static(
                     mv$(linkage),
+                    i.m_markings.is_thread_local,
                     (i.s_class() == ::AST::Static::MUT),
                     LowerHIR_Type( i.type() ),
                     LowerHIR_Expr( i.value() )
@@ -1988,6 +1989,7 @@ void _add_mod_mac_item(::HIR::Module& mod, RcString name, ::HIR::Publicity is_pu
 
         return ::HIR::ValueItem::make_Static(::HIR::Static(
             mv$(linkage),
+            e.m_markings.is_thread_local,
             (e.s_class() == ::AST::Static::MUT),
             LowerHIR_Type(e.type()),
             LowerHIR_Expr(e.value())

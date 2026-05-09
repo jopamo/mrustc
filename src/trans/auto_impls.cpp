@@ -713,7 +713,7 @@ void Trans_AutoImpls(::HIR::Crate& crate, TransList& trans_list)
 
             HIR::Linkage linkage;
             linkage.type = HIR::Linkage::Type::Weak;
-            HIR::Static vtable_static( ::std::move(linkage), /*is_mut*/false, mv$(vtable_ty), {} );
+            HIR::Static vtable_static( ::std::move(linkage), /*is_thread_local=*/false, /*is_mut=*/false, mv$(vtable_ty), {} );
             auto& vtable_data = vtable_static.m_value_res;
             const auto ptr_bytes = Target_GetPointerBits()/8;
             vtable_data.bytes.resize( repr->size );
@@ -785,7 +785,7 @@ void Trans_AutoImpls(::HIR::Crate& crate, TransList& trans_list)
 
             HIR::Linkage linkage;
             linkage.type = HIR::Linkage::Type::Weak;
-            HIR::Static vtable_static( ::std::move(linkage), /*is_mut*/false, mv$(vtable_ty), {} );
+            HIR::Static vtable_static( ::std::move(linkage), /*is_thread_local=*/false, /*is_mut=*/false, mv$(vtable_ty), {} );
             auto& vtable_data = vtable_static.m_value_res;
             const auto ptr_bytes = Target_GetPointerBits()/8;
             vtable_data.bytes.resize( repr->size );

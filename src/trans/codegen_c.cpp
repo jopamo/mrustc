@@ -2467,6 +2467,18 @@ namespace {
             }
 
             m_of << "extern ";
+            if(item.m_is_thread_local)
+            {
+                switch(m_compiler)
+                {
+                case Compiler::Gcc:
+                    m_of << "__thread ";
+                    break;
+                case Compiler::Msvc:
+                    m_of << "__declspec(thread) ";
+                    break;
+                }
+            }
             emit_static_ty(type, p, /*is_proto=*/true);
             if( linkage_name != "" && m_compiler == Compiler::Gcc)
             {
@@ -2531,6 +2543,21 @@ namespace {
                     break;
                 }
             }
+            if(item.m_is_thread_local && !item.m_params.is_generic()) {
+                m_of << "extern ";
+            }
+            if(item.m_is_thread_local)
+            {
+                switch(m_compiler)
+                {
+                case Compiler::Gcc:
+                    m_of << "__thread ";
+                    break;
+                case Compiler::Msvc:
+                    m_of << "__declspec(thread) ";
+                    break;
+                }
+            }
             if( item.m_params.is_generic() ) {
                 m_of << "static ";
             }
@@ -2551,7 +2578,19 @@ namespace {
 
             auto type = params.monomorph(m_resolve, item.m_type);
             // statics that are zero do not require initializers, since they will be initialized to zero on program startup.
-            if( !is_zero_literal(type, encoded, params)) {
+            if( item.m_is_thread_local || !is_zero_literal(type, encoded, params)) {
+                if(item.m_is_thread_local)
+                {
+                    switch(m_compiler)
+                    {
+                    case Compiler::Gcc:
+                        m_of << "__thread ";
+                        break;
+                    case Compiler::Msvc:
+                        m_of << "__declspec(thread) ";
+                        break;
+                    }
+                }
                 if( item.m_params.is_generic() ) {
                     m_of << "static ";
                 }

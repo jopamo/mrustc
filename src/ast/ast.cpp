@@ -238,7 +238,9 @@ TypeAlias TypeAlias::clone() const
 }
 Static Static::clone() const
 {
-    return Static( m_class, m_type.clone(), m_value.is_valid() ? AST::Expr( m_value.node().clone() ) : AST::Expr() );
+    auto rv = Static( m_class, m_type.clone(), m_value.is_valid() ? AST::Expr( m_value.node().clone() ) : AST::Expr() );
+    rv.m_markings = m_markings;
+    return rv;
 }
 
 Function::Function(Span sp, ::std::string abi, Flags flags, GenericParams params, TypeRef ret_type, Arglist args, bool is_variadic):

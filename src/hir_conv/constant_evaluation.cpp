@@ -52,7 +52,7 @@ namespace {
             auto name = RcString::new_interned(FMT(name_prefix << next_item_idx));
             next_item_idx ++;
             auto rv = mod_path.get_simple_path() + name.c_str();
-            auto s = ::HIR::Static( ::HIR::Linkage(), false, mv$(type), ::HIR::ExprPtr() );
+            auto s = ::HIR::Static( ::HIR::Linkage(), false, false, mv$(type), ::HIR::ExprPtr() );
             s.m_value_res = ::std::move(value);
             s.m_value_generated = true;
             s.m_save_literal = true;

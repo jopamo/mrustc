@@ -1087,6 +1087,7 @@ namespace static_borrow_constants {
                 auto path = (*m_current_module_path + name).get_simple_path();
                 auto new_static = HIR::Static(
                     HIR::Linkage(),
+                    /*is_thread_local=*/false,
                     /*is_mut=*/false,
                     mv$(ty),
                     /*m_value=*/mv$(val_expr)
@@ -1134,6 +1135,7 @@ namespace static_borrow_constants {
                         auto path = m_current_module_path + name;
                         auto new_static = HIR::Static(
                             HIR::Linkage(),
+                            /*is_thread_local=*/false,
                             /*is_mut=*/false,
                             ::std::move(type),
                             /*m_value=*/HIR::ExprPtr()
@@ -1355,6 +1357,7 @@ void HIR_Expand_StaticBorrowConstants_Expr(const ::HIR::Crate& crate, const ::HI
         auto path = ::HIR::SimplePath(crate.m_crate_name, {name});
         auto new_static = HIR::Static(
             HIR::Linkage(),
+            /*is_thread_local=*/false,
             /*is_mut=*/false,
             mv$(ty),
             /*m_value=*/mv$(val_expr)
@@ -1377,6 +1380,7 @@ void HIR_Expand_StaticBorrowConstants_Expr(const ::HIR::Crate& crate, const ::HI
                 auto path = HIR::SimplePath() + name;
                 auto new_static = HIR::Static(
                     HIR::Linkage(),
+                    /*is_thread_local=*/false,
                     /*is_mut=*/false,
                     ::std::move(type),
                     /*m_value=*/HIR::ExprPtr()

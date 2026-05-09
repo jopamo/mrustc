@@ -866,11 +866,13 @@ namespace {
             #define BIT(i,fld)  fld = (bitflag_1 & (1 << (i))) != 0;
             bool is_mut;
             bool save_literal;
+            bool is_thread_local;
             BIT(0, is_mut);
             BIT(1, save_literal);
+            BIT(2, is_thread_local);
             #undef BIT
             auto ty = deserialise_type();
-            auto rv = ::HIR::Static(mv$(linkage), is_mut, mv$(ty), {});
+            auto rv = ::HIR::Static(mv$(linkage), is_thread_local, is_mut, mv$(ty), {});
             if(params.is_generic())
             {
                 rv.m_value = deserialise_exprptr();

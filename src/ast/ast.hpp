@@ -163,6 +163,7 @@ public:
         std::string link_name;
         std::string link_section;
         Linkage linkage = Linkage::Default;
+        bool is_thread_local = false;
     } m_markings;
 
     Static(Class s_class, TypeRef type, Expr value):

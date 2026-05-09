@@ -136,7 +136,7 @@ void Trans_Monomorphise_List(const ::HIR::Crate& crate, TransList& list)
             auto p = ::HIR::SimplePath(crate.m_crate_name, {name});
             auto ent = std::make_unique<HIR::VisEnt<HIR::ValueItem>>(HIR::VisEnt<HIR::ValueItem> {
                 HIR::Publicity::new_global(),
-                HIR::ValueItem(::HIR::Static(HIR::Linkage(), false, std::move(type), HIR::ExprPtr()))
+                HIR::ValueItem(::HIR::Static(HIR::Linkage(), false, false, std::move(type), HIR::ExprPtr()))
                 });
             
             {

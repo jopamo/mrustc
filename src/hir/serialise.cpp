@@ -1256,6 +1256,7 @@
             #define BIT(i,fld)  if(fld) bitflag_1 |= 1 << (i);
             BIT(0, item.m_is_mut);
             BIT(1, item.m_save_literal)
+            BIT(2, item.m_is_thread_local);
             #undef BIT
             m_out.write_u8(bitflag_1);
             serialise(item.m_type);

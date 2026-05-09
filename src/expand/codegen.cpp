@@ -427,6 +427,29 @@ class CHandler_LinkSection:
 };
 STATIC_DECORATOR("link_section", CHandler_LinkSection);
 
+class CHandler_ThreadLocal:
+    public ExpandDecorator
+{
+    AttrStage   stage() const override { return AttrStage::Pre; }
+
+    void handle(const Span& sp, const AST::Attribute& mi, ::AST::Crate&, const AST::AbsolutePath&, AST::Module&, size_t, slice<const AST::Attribute>, const AST::Visibility&, AST::Item&i) const override {
+        TTStream    lex(mi.span(), ParseState(), mi.data());
+        lex.getTokenCheck(TOK_EOF);
+
+        if(i.is_None()) {
+        }
+        else if( auto* st = i.opt_Static() )
+        {
+            ASSERT_BUG(sp, st->s_class() != ::AST::Static::CONST, "#[thread_local] on `const`");
+            ASSERT_BUG(sp, !st->m_markings.is_thread_local, "Duplicate #[thread_local] attributes");
+            st->m_markings.is_thread_local = true;
+        }
+        else {
+        }
+    }
+};
+STATIC_DECORATOR("thread_local", CHandler_ThreadLocal);
+
 class CHandler_Link:
     public ExpandDecorator
 {

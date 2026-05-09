@@ -747,6 +747,9 @@ void Target_SetCfg(const ::std::string& target_name)
     // Since libcore declares AtomicN with repr(align(sizeof(N))), only set it when the
     // primitive's natural alignment already matches its size (e.g. u64 on x86 has align 4,
     // so target_has_atomic_equal_alignment="64" must be unset there even with cmpxchg8b).
+    if(g_target.m_backend_c.m_codegen_mode == CodegenMode::Gnu11) {
+        Cfg_SetFlag("target_thread_local");
+    }
     if(g_target.m_arch.m_atomics.u8)    { Cfg_SetValue("target_has_atomic", "8"  ); Cfg_SetValue("target_has_atomic_load_store", "8"  ); Cfg_SetValue("target_has_atomic_equal_alignment", "8"  ); }
     if(g_target.m_arch.m_atomics.u16)   { Cfg_SetValue("target_has_atomic", "16" ); Cfg_SetValue("target_has_atomic_load_store", "16" ); if(g_target.m_arch.m_alignments.u16 >= 2) Cfg_SetValue("target_has_atomic_equal_alignment", "16" ); }
     if(g_target.m_arch.m_atomics.u32)   { Cfg_SetValue("target_has_atomic", "32" ); Cfg_SetValue("target_has_atomic_load_store", "32" ); if(g_target.m_arch.m_alignments.u32 >= 4) Cfg_SetValue("target_has_atomic_equal_alignment", "32" ); }

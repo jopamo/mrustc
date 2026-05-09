@@ -124,6 +124,7 @@ public:
     GenericParams   m_params;
 
     Linkage m_linkage;
+    bool    m_is_thread_local;
     bool    m_is_mut;
     TypeRef m_type;
 
@@ -136,8 +137,9 @@ public:
 
     mutable ::std::map< ::HIR::Path, EncodedLiteral>   m_monomorph_cache;
 
-    Static(Linkage linkage, bool is_mut, TypeRef type, ExprPtr value)
+    Static(Linkage linkage, bool is_thread_local, bool is_mut, TypeRef type, ExprPtr value)
         : m_linkage( std::move(linkage) )
+        , m_is_thread_local(is_thread_local)
         , m_is_mut(is_mut)
         , m_type( std::move(type) )
         , m_value( std::move(value) )
