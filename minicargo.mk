@@ -26,12 +26,14 @@ OUTDIR_SUF ?= $(OUTDIR_SUF_DEF)
 
 # MMIR : Set to non-empty to compile Monomorphised MIR
 MMIR ?=
+# HOST_PARLEVEL_DEF : Default parallel job count for native tool invocations
+HOST_PARLEVEL_DEF := $(shell nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
 # RUSTC_CHANNEL : `rustc` release channel (picks source dir)
 RUSTC_CHANNEL ?= stable
 # PARLEVEL : `minicargo`'s job count
 PARLEVEL ?= 1
-# LLVM_PARLEVEL : LLVM build job count (defaults to PARLEVEL)
-LLVM_PARLEVEL ?= $(PARLEVEL)
+# LLVM_PARLEVEL : LLVM build job count
+LLVM_PARLEVEL ?= $(HOST_PARLEVEL_DEF)
 # Additional flags for `minicargo` (e.g. library paths)
 MINICARGO_FLAGS ?=
 # RUST_TESTS_FINAL_STAGE : Final stage for tests run as part of the rust_tests target.
@@ -228,13 +230,14 @@ rustc-$(RUSTC_VERSION)-src/extracted: $(RUSTC_SRC_TARBALL)
 	tar -xzf $(RUSTC_SRC_TARBALL)
 	touch $@
 # Compare contents, not mtimes: a checkout churns mtimes and re-patching fails.
-$(RUSTC_SRC_DL): rustc-$(RUSTC_VERSION)-src/extracted rustc-$(RUSTC_VERSION)-src.patch
+$(RUSTC_SRC_DL): rustc-$(RUSTC_VERSION)-src/extracted rustc-$(RUSTC_VERSION)-src.patch scripts/fix_rust_libdir_symlink.py
 	@cmp -s rustc-$(RUSTC_VERSION)-src.patch $@ && exit 0; \
 	echo [PATCH] rustc-$(RUSTC_VERSION)-src; \
 	files=`cat $@ rustc-$(RUSTC_VERSION)-src.patch 2>/dev/null | sed -n 's|^--- |$(RUSTCSRC)|p' | sort -u`; \
 	tar -xzf $(RUSTC_SRC_TARBALL) $$files && \
 	( cd $(RUSTCSRC) && patch -p0 < ../rustc-$(RUSTC_VERSION)-src.patch ) && \
 	cp rustc-$(RUSTC_VERSION)-src.patch $@
+	python3 scripts/fix_rust_libdir_symlink.py $(RUSTCSRC)
 
 # Standard library crates
 # - libstd, libpanic_unwind, libtest and libgetopts

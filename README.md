@@ -31,15 +31,19 @@ Progress
 Getting Started
 ===============
 
-You can set the number of jobs (parallel builds) by setting the enviromment variable `PARLEVEL`, e.g. `PARLEVEL=$(nproc)` for CPU core count. This can and will break at times, as such outside of toying around, it's best to do `PARLEVEL=1` or let mrustc figure it out by itself.
+You can set the number of jobs (parallel builds) by setting the enviromment variable `PARLEVEL`, e.g. `PARLEVEL=$(nproc)` for CPU core count. The mrustc/minicargo bootstrap path still defaults to `PARLEVEL=1`, but once a working rustc exists the helper scripts and `run_rustc` default to using your CPU count.
 
-If you only want LLVM parallel and everything else serialised, set `LLVM_PARLEVEL` separately, e.g. `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-1.90.0.sh`.
+LLVM now defaults to `LLVM_PARLEVEL=$(nproc)` even when the mrustc-driven parts are serialised. Override it if you want, e.g. `LLVM_PARLEVEL=8 ./build-1.90.0.sh`.
 
 LLVM is configured to build static libraries, not shared LLVM libraries.
 
-To bootstrap the next validated compiler from the mrustc-built 1.90.0 toolchain, run `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-1.91.1.sh`. This produces `output-1.91.1/`. Set `COMPARE_WITH_OFFICIAL=1` if you also want to build the official-bootstrap copy and compare the resulting archives.
+The bootstrap helper scripts default to `MRUSTC_PARLEVEL=1` for the mrustc-built stage0 and to `BOOTSTRAP_PARLEVEL=$(nproc)` for `x.py`. Set `LLVM_PARLEVEL` if you want LLVM to use a different job count.
 
-Once `output-1.91.1/` exists, you can keep walking forward with the official bootstrap using `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-official-step.sh 1.91.1 1.92.0`, or build a whole chain with `PARLEVEL=1 LLVM_PARLEVEL=$(nproc) ./build-official-chain.sh 1.91.1 stable`. The known validated chain to current stable is `1.91.1 -> 1.92.0 -> 1.93.1 -> 1.94.1 -> 1.95.0`.
+To bootstrap the next validated compiler from the mrustc-built 1.90.0 toolchain, run `./build-1.91.1.sh`. This produces `output-1.91.1/`. Set `COMPARE_WITH_OFFICIAL=1` if you also want to build the official-bootstrap copy and compare the resulting archives.
+
+Once `output-1.91.1/` exists, you can keep walking forward with the official bootstrap using `./build-official-step.sh 1.91.1 1.92.0`, or build a whole chain with `./build-official-chain.sh 1.91.1 stable`. The known validated chain to current stable is `1.91.1 -> 1.92.0 -> 1.93.1 -> 1.94.1 -> 1.95.0`.
+
+The bootstrap scripts also patch rustc/bootstrap so a sysroot installed under `/usr` still behaves correctly when `/usr/lib64` is just a symlink to `/usr/lib`.
 
 Dependencies
 ------------

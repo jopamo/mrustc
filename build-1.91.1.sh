@@ -6,8 +6,13 @@ if [ "$#" -ne 0 ]; then
 	exit 1
 fi
 
-export PARLEVEL=${PARLEVEL:-1}
-export LLVM_PARLEVEL=${LLVM_PARLEVEL:-${PARLEVEL}}
+default_jobs() {
+	nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1
+}
+
+export MRUSTC_PARLEVEL=${MRUSTC_PARLEVEL:-1}
+export BOOTSTRAP_PARLEVEL=${BOOTSTRAP_PARLEVEL:-$(default_jobs)}
+export LLVM_PARLEVEL=${LLVM_PARLEVEL:-${BOOTSTRAP_PARLEVEL}}
 export COMPARE_WITH_OFFICIAL=${COMPARE_WITH_OFFICIAL:-0}
 export WORKDIR=${WORKDIR:-rustc_bootstrap-1.91.1/}
 

@@ -13,7 +13,8 @@
 # - Step 4: Build `libstd` with this `rustc`
 #  - Needed to match ABIs
 
-PARLEVEL ?= 1
+HOST_PARLEVEL_DEF := $(shell nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
+PARLEVEL ?= $(HOST_PARLEVEL_DEF)
 RUSTC_VERSION_DEF := $(shell cat ../rust-version)
 
 ifeq ($(OS),Windows_NT)
@@ -267,4 +268,3 @@ $(BINDIR)hello_world: $(RUST_SRC_HELLO) $(BINDIR)rustc $(LIBDIR)libstd.rlib
 #TEST_BOOTSTRAP: $(BINDIR)rustc $(LIBDIR)libstd.rlib
 #	@echo [CARGO] $(RUST_SRC)src/bootstrap/Cargo.toml '>' $(OUTDIR)build-rustc2/
 #	$V$(RUSTC_ENV_VARS) TMPDIR=$(abspath $(PREFIX)tmp) CARGO_TARGET_DIR=$(OUTDIR)build-bootstrap RUSTC=$(BINDIR)rustc $(CARGO_ENV) $(BINDIR)cargo build --manifest-path $(RUST_SRC)bootstrap/Cargo.toml --release -j $(PARLEVEL) --frozen --verbose
-

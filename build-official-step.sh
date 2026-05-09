@@ -9,8 +9,12 @@ fi
 FROM_VERSION="$1"
 TO_VERSION="$2"
 
-PARLEVEL="${PARLEVEL:-1}"
-LLVM_PARLEVEL="${LLVM_PARLEVEL:-$PARLEVEL}"
+default_jobs() {
+	nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1
+}
+
+BOOTSTRAP_PARLEVEL="${BOOTSTRAP_PARLEVEL:-$(default_jobs)}"
+LLVM_PARLEVEL="${LLVM_PARLEVEL:-$BOOTSTRAP_PARLEVEL}"
 COMPARE_WITH_OFFICIAL="${COMPARE_WITH_OFFICIAL:-0}"
 RUSTC_TARGET="${RUSTC_TARGET:-x86_64-unknown-linux-gnu}"
 WORKDIR="${WORKDIR:-rustc_bootstrap-${TO_VERSION}/}"
@@ -47,6 +51,7 @@ prepare_tree() {
 	rm -rf "${WORKDIR}${mode}"
 	mkdir -p "${WORKDIR}${mode}/"
 	tar -xzf "${SRC_TARBALL}" -C "${WORKDIR}${mode}/"
+	python3 scripts/fix_rust_libdir_symlink.py "${WORKDIR}${mode}/rustc-${TO_VERSION}-src"
 }
 
 write_local_config() {
@@ -54,7 +59,7 @@ write_local_config() {
 [build]
 cargo = "${STAGE0_PREFIX}/bin/cargo"
 rustc = "${STAGE0_PREFIX}/bin/rustc"
-jobs = ${PARLEVEL}
+jobs = ${BOOTSTRAP_PARLEVEL}
 full-bootstrap = true
 vendor = true
 extended = true
@@ -65,9 +70,9 @@ EOF
 }
 
 write_official_config() {
-	cat > "${WORKDIR}official/rustc-${TO_VERSION}-src/config.toml" <<EOF
+cat > "${WORKDIR}official/rustc-${TO_VERSION}-src/config.toml" <<EOF
 [build]
-jobs = ${PARLEVEL}
+jobs = ${BOOTSTRAP_PARLEVEL}
 full-bootstrap = true
 vendor = true
 extended = true

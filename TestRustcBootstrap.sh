@@ -5,10 +5,15 @@ set -u  # Error on unset variables
 
 WORKDIR=${WORKDIR:-rustc_bootstrap}/
 
+default_jobs() {
+    nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1
+}
+
 RUSTC_TARGET=${RUSTC_TARGET:-x86_64-unknown-linux-gnu}
 RUSTC_VERSION=${*-1.29.0}
-PARLEVEL=${PARLEVEL:-1}
-LLVM_PARLEVEL=${LLVM_PARLEVEL:-$PARLEVEL}
+MRUSTC_PARLEVEL=${MRUSTC_PARLEVEL:-1}
+BOOTSTRAP_PARLEVEL=${BOOTSTRAP_PARLEVEL:-$(default_jobs)}
+LLVM_PARLEVEL=${LLVM_PARLEVEL:-$BOOTSTRAP_PARLEVEL}
 COMPARE_WITH_OFFICIAL=${COMPARE_WITH_OFFICIAL:-1}
 RUN_RUSTC_SUF=""
 if [[ "$RUSTC_VERSION" == "1.29.0" ]]; then
@@ -33,11 +38,15 @@ else
     echo "Unknown rustc version"
 fi
 
-MAKEFLAGS=-j${LLVM_PARLEVEL}
-export MAKEFLAGS
+apply_rust_patches() {
+    python3 scripts/fix_rust_libdir_symlink.py "$1"
+}
 
 echo "=== Building stage0 rustc (with libstd)"
-make -C run_rustc RUSTC_VERSION=${RUSTC_VERSION}
+make -C run_rustc RUSTC_VERSION=${RUSTC_VERSION} PARLEVEL=${MRUSTC_PARLEVEL}
+
+MAKEFLAGS=-j${LLVM_PARLEVEL}
+export MAKEFLAGS
 
 PREFIX=${PWD}/run_rustc/output${RUN_RUSTC_SUF}/prefix/
 
@@ -54,11 +63,12 @@ rm -rf ${WORKDIR}build
 echo "=== Building rustc bootstrap mrustc stage0"
 mkdir -p ${WORKDIR}mrustc/
 tar -xzf rustc-${RUSTC_VERSION_NEXT}-src.tar.gz -C ${WORKDIR}mrustc/
+apply_rust_patches ${WORKDIR}mrustc/rustc-${RUSTC_VERSION_NEXT}-src
 cat - > ${WORKDIR}mrustc/rustc-${RUSTC_VERSION_NEXT}-src/config.toml <<EOF
 [build]
 cargo = "${PREFIX}bin/cargo"
 rustc = "${PREFIX}bin/rustc"
-jobs = ${PARLEVEL}
+jobs = ${BOOTSTRAP_PARLEVEL}
 full-bootstrap = true
 vendor = true
 extended = true
@@ -91,9 +101,10 @@ if [ "${COMPARE_WITH_OFFICIAL}" != "0" ]; then
 echo "=== Building rustc bootstrap downloaded stage0"
 mkdir -p ${WORKDIR}official/
 tar -xzf rustc-${RUSTC_VERSION_NEXT}-src.tar.gz -C ${WORKDIR}official/
+apply_rust_patches ${WORKDIR}official/rustc-${RUSTC_VERSION_NEXT}-src
 cat - > ${WORKDIR}official/rustc-${RUSTC_VERSION_NEXT}-src/config.toml <<EOF
 [build]
-jobs = ${PARLEVEL}
+jobs = ${BOOTSTRAP_PARLEVEL}
 full-bootstrap = true
 vendor = true
 extended = true
