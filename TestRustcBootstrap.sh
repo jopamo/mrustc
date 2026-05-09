@@ -3,7 +3,8 @@
 set -e  # Quit script on error
 set -u  # Error on unset variables
 
-WORKDIR=${WORKDIR:-rustc_bootstrap}/
+WORKDIR=${WORKDIR:-rustc_bootstrap}
+WORKDIR="${WORKDIR%/}/"
 
 default_jobs() {
     nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1

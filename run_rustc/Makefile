@@ -226,7 +226,7 @@ $(BINDIR_2)rustc: ../output$(OUTDIR_SUF)/rustc
 CARGO_OUTDIR_RUSTC := $(OUTDIR)build-rustc/$(RUSTC_TARGET)/release/
 CARGO_ENV_RUSTC := CARGO_TARGET_DIR=$(OUTDIR)build-rustc RUSTC=$(abspath rustc_proxy.sh) PROXY_RUSTC=$(abspath $(BINDIR_2)rustc) PROXY_MRUSTC=$(abspath $(BINDIR_S)rustc) $(CARGO_ENV)
 # - Build rustc with itself (so we have a rustc with the right ABI)
-$(BINDIR)rustc: $(BINDIR_2)rustc $(BINDIR_S)cargo $(CARGO_HOME)config $(LIBDIR_2)libtest.rlib
+$(BINDIR)rustc: $(BINDIR_2)rustc $(BINDIR_S)cargo $(CARGO_HOME)config $(LIBDIR_2)libtest.rlib Makefile
 	@mkdir -p $(PREFIX)tmp
 	@echo [CARGO] $(RUST_SRC_RUSTC)Cargo.toml '>' $(OUTDIR)build-rustc/
 	$V$(RUSTC_ENV_VARS) TMPDIR=$(abspath $(PREFIX)tmp) $(CARGO_ENV_RUSTC) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_RUSTC)Cargo.toml $(CARGO_FLAGS_rustc)
@@ -249,7 +249,54 @@ ifeq ($(RUSTC_VERSION),1.19.0)
 else
 	$V$(call fn_opt_copy,$(CARGO_OUTDIR_RUSTC)$(RUSTC_BINNAME),$(BINDIR)rustc_binary)
 endif
-	$Vprintf '#!/bin/sh\nd=$$(dirname $$0)\nLD_LIBRARY_PATH="$(abspath $(OUTDIR)prefix/lib):$(abspath $(LIBDIR))" $$d/rustc_binary "$$@"' >$@
+	$V{ \
+		echo '#!/bin/sh'; \
+		echo 'set -eu'; \
+		echo 'd=$$(dirname "$$0")'; \
+		echo 'TARGET_TRIPLE="$(RUSTC_TARGET)"'; \
+		echo 'is_target() {'; \
+		echo '    for a in "$$@"'; \
+		echo '    do'; \
+		echo '        case "$$a" in'; \
+		echo '        --target|--target*|-vV)'; \
+		echo '            return 0'; \
+		echo '            ;;'; \
+		echo '        esac'; \
+		echo '    done'; \
+		echo '    return 1'; \
+		echo '}'; \
+		echo 'has_target_feature_flag() {'; \
+		echo '    prev_was_c=0'; \
+		echo '    for a in "$$@"'; \
+		echo '    do'; \
+		echo '        if [ "$$prev_was_c" = 1 ]; then'; \
+		echo '            case "$$a" in'; \
+		echo '            target-feature=*)'; \
+		echo '                return 0'; \
+		echo '                ;;'; \
+		echo '            esac'; \
+		echo '            prev_was_c=0'; \
+		echo '        fi'; \
+		echo '        case "$$a" in'; \
+		echo '        -C)'; \
+		echo '            prev_was_c=1'; \
+		echo '            ;;'; \
+		echo '        -Ctarget-feature=*)'; \
+		echo '            return 0'; \
+		echo '            ;;'; \
+		echo '        esac'; \
+		echo '    done'; \
+		echo '    return 1'; \
+		echo '}'; \
+		echo 'case "$$TARGET_TRIPLE" in'; \
+		echo '    *-linux-musl)'; \
+		echo '        if ! is_target "$$@" && ! has_target_feature_flag "$$@"; then'; \
+		echo '            LD_LIBRARY_PATH="$(abspath $(OUTDIR)prefix/lib):$(abspath $(LIBDIR))" exec "$$d/rustc_binary" -C target-feature=-crt-static "$$@"'; \
+		echo '        fi'; \
+		echo '        ;;'; \
+		echo 'esac'; \
+		echo 'LD_LIBRARY_PATH="$(abspath $(OUTDIR)prefix/lib):$(abspath $(LIBDIR))" exec "$$d/rustc_binary" "$$@"'; \
+	} >$@
 	$Vchmod +x $@
 
 #

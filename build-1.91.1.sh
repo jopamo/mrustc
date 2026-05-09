@@ -14,7 +14,8 @@ export MRUSTC_PARLEVEL=${MRUSTC_PARLEVEL:-$(default_jobs)}
 export BOOTSTRAP_PARLEVEL=${BOOTSTRAP_PARLEVEL:-$(default_jobs)}
 export LLVM_PARLEVEL=${LLVM_PARLEVEL:-${BOOTSTRAP_PARLEVEL}}
 export COMPARE_WITH_OFFICIAL=${COMPARE_WITH_OFFICIAL:-0}
-export WORKDIR=${WORKDIR:-rustc_bootstrap-1.91.1/}
+export WORKDIR=${WORKDIR:-rustc_bootstrap-1.91.1}
+export WORKDIR="${WORKDIR%/}/"
 
 ./TestRustcBootstrap.sh 1.90.0
 
