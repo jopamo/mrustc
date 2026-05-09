@@ -54,6 +54,26 @@ else
   OVERRIDE_SUFFIX ?= -linux
 endif
 
+HOST_GNU_TYPE := $(shell $(CC) -dumpmachine 2>/dev/null || echo unknown)
+LINUX_RUSTC_TARGET_DEF := $(shell t="$(HOST_GNU_TYPE)"; \
+  if echo "$$t" | grep -Eq '^x86_64-.*-linux-musl$$'; then echo x86_64-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^x86_64-.*-linux-gnu'; then echo x86_64-unknown-linux-gnu; \
+  elif echo "$$t" | grep -Eq '^aarch64-.*-linux-musl$$'; then echo aarch64-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^aarch64-.*-linux-gnu'; then echo aarch64-unknown-linux-gnu; \
+  elif echo "$$t" | grep -Eq '^(arm|armv[0-9]+)-.*-linux-musl'; then echo arm-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^(arm|armv[0-9]+)-.*-linux-gnu'; then echo arm-unknown-linux-gnu; \
+  elif echo "$$t" | grep -Eq '^i[0-9]86-.*-linux-musl$$'; then echo i586-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^i[0-9]86-.*-linux-gnu'; then echo i586-unknown-linux-gnu; \
+  elif echo "$$t" | grep -Eq '^m68k-.*-linux-musl$$'; then echo m68k-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^m68k-.*-linux-gnu'; then echo m68k-unknown-linux-gnu; \
+  elif echo "$$t" | grep -Eq '^powerpc64le-.*-linux-musl$$'; then echo powerpc64le-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^powerpc64le-.*-linux-gnu'; then echo powerpc64le-unknown-linux-gnu; \
+  elif echo "$$t" | grep -Eq '^powerpc64-.*-linux-musl$$'; then echo powerpc64-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^powerpc64-.*-linux-gnu'; then echo powerpc64-unknown-linux-gnu; \
+  elif echo "$$t" | grep -Eq '^riscv64-.*-linux-musl$$'; then echo riscv64-unknown-linux-musl; \
+  elif echo "$$t" | grep -Eq '^riscv64-.*-linux-gnu'; then echo riscv64-unknown-linux-gnu; \
+  else echo x86_64-unknown-linux-gnu; fi)
+
 # --- Pepare minicargo flags etc ---
 # Set up for MMIR mode
 ifneq ($(MMIR),)
@@ -166,7 +186,7 @@ ifeq ($(shell uname -s || echo not),Darwin)
 else ifeq ($(OS),Windows_NT)
   RUSTC_TARGET ?= x86_64-windows-gnu
 else
-  RUSTC_TARGET ?= x86_64-unknown-linux-gnu
+  RUSTC_TARGET ?= $(LINUX_RUSTC_TARGET_DEF)
 endif
 RUSTC_ARCH := $(firstword $(subst -, ,$(RUSTC_TARGET)))
 # Directory for minicargo build script overrides
