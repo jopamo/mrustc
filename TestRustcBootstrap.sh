@@ -9,7 +9,31 @@ default_jobs() {
     nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1
 }
 
-RUSTC_TARGET=${RUSTC_TARGET:-x86_64-unknown-linux-gnu}
+default_rustc_target() {
+    local host_gnu_type
+    host_gnu_type="$(${CC:-cc} -dumpmachine 2>/dev/null || echo unknown)"
+    case "${host_gnu_type}" in
+        x86_64-*-linux-musl) echo x86_64-unknown-linux-musl ;;
+        x86_64-*-linux-gnu*) echo x86_64-unknown-linux-gnu ;;
+        aarch64-*-linux-musl) echo aarch64-unknown-linux-musl ;;
+        aarch64-*-linux-gnu*) echo aarch64-unknown-linux-gnu ;;
+        arm-*-linux-musl|armv[0-9]*-*-linux-musl) echo arm-unknown-linux-musl ;;
+        arm-*-linux-gnu*|armv[0-9]*-*-linux-gnu*) echo arm-unknown-linux-gnu ;;
+        i?86-*-linux-musl) echo i586-unknown-linux-musl ;;
+        i?86-*-linux-gnu*) echo i586-unknown-linux-gnu ;;
+        m68k-*-linux-musl) echo m68k-unknown-linux-musl ;;
+        m68k-*-linux-gnu*) echo m68k-unknown-linux-gnu ;;
+        powerpc64le-*-linux-musl) echo powerpc64le-unknown-linux-musl ;;
+        powerpc64le-*-linux-gnu*) echo powerpc64le-unknown-linux-gnu ;;
+        powerpc64-*-linux-musl) echo powerpc64-unknown-linux-musl ;;
+        powerpc64-*-linux-gnu*) echo powerpc64-unknown-linux-gnu ;;
+        riscv64-*-linux-musl) echo riscv64-unknown-linux-musl ;;
+        riscv64-*-linux-gnu*) echo riscv64-unknown-linux-gnu ;;
+        *) echo x86_64-unknown-linux-gnu ;;
+    esac
+}
+
+RUSTC_TARGET=${RUSTC_TARGET:-$(default_rustc_target)}
 RUSTC_VERSION=${*-1.29.0}
 MRUSTC_PARLEVEL=${MRUSTC_PARLEVEL:-$(default_jobs)}
 BOOTSTRAP_PARLEVEL=${BOOTSTRAP_PARLEVEL:-$(default_jobs)}

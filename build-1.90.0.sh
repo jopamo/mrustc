@@ -25,7 +25,7 @@ fi
 RUSTC_INSTALL_BINDIR=bin make -j"${PARLEVEL}" -f minicargo.mk $OUTDIR/rustc "$@"
 set -x
 ./$OUTDIR/rustc --version
-./$OUTDIR/rustc samples/no_core-1_90.rs
+./$OUTDIR/rustc samples/no_core-1_90.rs -C target-feature=-crt-static
 set +x
 
 LIBGIT2_SYS_USE_PKG_CONFIG=1 make -j"${PARLEVEL}" -f minicargo.mk $OUTDIR/cargo "$@"

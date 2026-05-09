@@ -93,6 +93,10 @@ endif
 RUST_SRC_HELLO := ../samples/hello.rs
 
 RUSTC_ARCH := $(firstword $(subst -, ,$(RUSTC_TARGET)))
+HELLO_RUSTFLAGS :=
+ifneq ($(filter %-linux-musl,$(RUSTC_TARGET)),)
+HELLO_RUSTFLAGS += -C target-feature=-crt-static
+endif
 
 OUTDIR := output$(OUTDIR_SUF)/
 # Stage 1: standard library built with `rustc_m` (using minicargo)
@@ -190,7 +194,7 @@ endif
 # Build hello_world using the bootstrapping compiler (mrustc-built rustc)
 $(BINDIR_S)hello_world: $(RUST_SRC_HELLO) $(LIBDIR_S)libstd.rlib $(BINDIR_S)rustc
 	@mkdir -p $(dir $@)
-	$V$(BINDIR_S)rustc $(RUSTFLAGS_$@) -L $(LIBDIR_S) $< -o $@
+	$V$(BINDIR_S)rustc $(HELLO_RUSTFLAGS) $(RUSTFLAGS_$@) -L $(LIBDIR_S) $< -o $@
 
 # ---
 # Stage 2: Build a proper libstd (which includes dynamc libraries too)
@@ -280,7 +284,7 @@ endif
 $(BINDIR)hello_world: $(RUST_SRC_HELLO) $(BINDIR)rustc $(LIBDIR)libstd.rlib
 	@mkdir -p $(dir $@)
 	@echo "[RUSTC] -o $@"
-	$V$(DBG) $(BINDIR)rustc -L $(LIBDIR) $< -o $@
+	$V$(DBG) $(BINDIR)rustc $(HELLO_RUSTFLAGS) -L $(LIBDIR) $< -o $@
 	./$@
 
 #.PHONY: TEST_BOOTSTRAP
