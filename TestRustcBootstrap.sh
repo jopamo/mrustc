@@ -67,6 +67,16 @@ apply_rust_patches() {
     python3 scripts/fix_rust_libdir_symlink.py "$1"
 }
 
+append_target_bootstrap_config() {
+    local cfg_path="$1"
+    if [[ "${RUSTC_TARGET}" == *-linux-musl ]]; then
+        cat - >> "${cfg_path}" <<EOF
+[target.${RUSTC_TARGET}]
+crt-static = false
+EOF
+    fi
+}
+
 echo "=== Building stage0 rustc (with libstd)"
 make -j"${MRUSTC_PARLEVEL}" -C run_rustc RUSTC_VERSION=${RUSTC_VERSION} PARLEVEL=${MRUSTC_PARLEVEL}
 
@@ -101,6 +111,7 @@ extended = true
 ninja = false
 download-ci-llvm = false
 EOF
+append_target_bootstrap_config ${WORKDIR}mrustc/rustc-${RUSTC_VERSION_NEXT}-src/config.toml
 echo "--- Running x.py, see ${WORKDIR}mrustc.log for progress"
 (cd ${WORKDIR} && mv mrustc build)
 cleanup_mrustc() {
@@ -137,6 +148,7 @@ extended = true
 ninja = false
 download-ci-llvm = false
 EOF
+append_target_bootstrap_config ${WORKDIR}official/rustc-${RUSTC_VERSION_NEXT}-src/config.toml
 echo "--- Running x.py, see ${WORKDIR}official.log for progress"
 (cd ${WORKDIR} && mv official build)
 (cd ${WORKDIR}build/rustc-${RUSTC_VERSION_NEXT}-src/ && ./x.py build --stage 3) > ${WORKDIR}official.log 2>&1
