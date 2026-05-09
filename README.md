@@ -31,13 +31,13 @@ Progress
 Getting Started
 ===============
 
-You can set the number of jobs (parallel builds) by setting the enviromment variable `PARLEVEL`, e.g. `PARLEVEL=$(nproc)` for CPU core count. The mrustc/minicargo bootstrap path still defaults to `PARLEVEL=1`, but once a working rustc exists the helper scripts and `run_rustc` default to using your CPU count.
+You can set the number of jobs (parallel builds) by setting the enviromment variable `PARLEVEL`, e.g. `PARLEVEL=$(nproc)` for CPU core count. The mrustc/minicargo bootstrap path now defaults to using your CPU count, as do the helper scripts and `run_rustc`.
 
-LLVM now defaults to `LLVM_PARLEVEL=$(nproc)` even when the mrustc-driven parts are serialised. Override it if you want, e.g. `LLVM_PARLEVEL=8 ./build-1.90.0.sh`.
+LLVM also defaults to `LLVM_PARLEVEL=$(nproc)`. Override it if you want, e.g. `LLVM_PARLEVEL=8 ./build-1.90.0.sh`.
 
 LLVM is configured to build static libraries, not shared LLVM libraries.
 
-The bootstrap helper scripts default to `MRUSTC_PARLEVEL=1` for the mrustc-built stage0 and to `BOOTSTRAP_PARLEVEL=$(nproc)` for `x.py`. Set `LLVM_PARLEVEL` if you want LLVM to use a different job count.
+The bootstrap helper scripts default to `MRUSTC_PARLEVEL=$(nproc)` for the mrustc-built stage0 and to `BOOTSTRAP_PARLEVEL=$(nproc)` for `x.py`. Set `MRUSTC_PARLEVEL=1` and/or `LLVM_PARLEVEL=1` if you want to force serial execution.
 
 To bootstrap the next validated compiler from the mrustc-built 1.90.0 toolchain, run `./build-1.91.1.sh`. This produces `output-1.91.1/`. Set `COMPARE_WITH_OFFICIAL=1` if you also want to build the official-bootstrap copy and compare the resulting archives.
 

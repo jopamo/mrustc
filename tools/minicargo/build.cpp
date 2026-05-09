@@ -53,14 +53,18 @@ void make_dep_codegen(::std::string& d) {
 struct RunState
 {
     BuildOptions&   m_opts;
-    const helpers::path& m_compiler_path;
+    helpers::path   m_compiler_path;
     bool m_is_cross_compiling;
 
     RunState(BuildOptions& opts, bool is_cross_compiling)
         : m_opts(opts)
         , m_compiler_path(os_support::get_mrustc_path())
         , m_is_cross_compiling(is_cross_compiling)
-    {}
+    {
+        if( !m_compiler_path.is_absolute() ) {
+            m_compiler_path = m_compiler_path.to_absolute();
+        }
+    }
 
     bool is_rustc() const {
         return m_compiler_path.basename() == "rustc" || m_compiler_path.basename() == "rustc.exe";
@@ -376,6 +380,19 @@ BuildList::BuildList(const PackageManifest& manifest, const BuildOptions& opts):
 }
 bool BuildList::build(BuildOptions opts, unsigned num_jobs, bool dry_run)
 {
+    if( !opts.output_dir.is_absolute() ) {
+        opts.output_dir = opts.output_dir.to_absolute();
+    }
+    if( opts.build_script_overrides.is_valid() && !opts.build_script_overrides.is_absolute() ) {
+        opts.build_script_overrides = opts.build_script_overrides.to_absolute();
+    }
+    for(auto& d : opts.lib_search_dirs)
+    {
+        if( !d.is_absolute() ) {
+            d = d.to_absolute();
+        }
+    }
+
     bool cross_compiling = (opts.target_name != nullptr && !opts.emit_mmir);
 
     RunState    run_state { opts, cross_compiling };
@@ -1237,7 +1254,7 @@ RunnableJob Job_RunScript::start()
     env.push_back("DEBUG", "0");
     env.push_back("PROFILE", "release");
     // - Needed for `regex`'s build script, make mrustc pretend to be rustc
-    env.push_back("RUSTC", parent.m_compiler_path);
+    env.push_back("RUSTC", parent.m_compiler_path.str());
     if( !parent.m_opts.lib_search_dirs.empty() ) {
         env.push_back("MRUSTC_LIBDIR", ::helpers::path(parent.m_opts.lib_search_dirs.front()).to_absolute().str());
     }

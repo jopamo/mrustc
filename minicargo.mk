@@ -31,7 +31,7 @@ HOST_PARLEVEL_DEF := $(shell nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/d
 # RUSTC_CHANNEL : `rustc` release channel (picks source dir)
 RUSTC_CHANNEL ?= stable
 # PARLEVEL : `minicargo`'s job count
-PARLEVEL ?= 1
+PARLEVEL ?= $(HOST_PARLEVEL_DEF)
 # LLVM_PARLEVEL : LLVM build job count
 LLVM_PARLEVEL ?= $(HOST_PARLEVEL_DEF)
 # Additional flags for `minicargo` (e.g. library paths)

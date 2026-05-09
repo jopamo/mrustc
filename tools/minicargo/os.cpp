@@ -268,6 +268,24 @@ Process Process::spawn(
         ::std::lock_guard<::std::mutex> lh { s_chdir_mutex };
 #endif
         auto fd_cwd = open(".", O_DIRECTORY);
+        if( fd_cwd < 0 ) {
+            throw CError("open");
+        }
+        struct CwdGuard {
+            int fd_cwd;
+            bool active;
+            ~CwdGuard() {
+                if( fd_cwd >= 0 ) {
+                    if( active ) {
+                        if( fchdir(fd_cwd) != 0 ) {
+                            ::std::cerr << "Restoring CWD failed" << std::endl;
+                            exit(1);
+                        }
+                    }
+                    close(fd_cwd);
+                }
+            }
+        } cwd_guard { fd_cwd, false };
 
         if( working_directory != ::helpers::path() ) {
             if( chdir(working_directory.str().c_str()) != 0 ) {
@@ -277,6 +295,7 @@ Process Process::spawn(
                 ::std::cerr << ::std::endl;
                 throw ::std::runtime_error("Unable to spawn process");
             }
+            cwd_guard.active = true;
         }
         if( posix_spawn(&pid, exe_name, &fa, /*attr=*/nullptr, (char* const*)argv.data(), (char* const*)envp.get_vec().data()) != 0 )
         {
@@ -287,12 +306,6 @@ Process Process::spawn(
             DEBUG("Unable to spawn executable");
             posix_spawn_file_actions_destroy(&fa);
             throw ::std::runtime_error("Unable to spawn process");
-        }
-        if( working_directory != ::helpers::path() ) {
-            if( fchdir(fd_cwd) != 0 ) {
-                ::std::cerr << "Restoring CWD failed" << std::endl;
-                exit(1);
-            }
         }
     }
     posix_spawn_file_actions_destroy(&fa);
@@ -524,4 +537,3 @@ void argv_quote_windows(const std::string& arg, std::stringstream& cmdline)
 }
 #endif
 }
-

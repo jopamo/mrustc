@@ -247,10 +247,11 @@ PackageManifest::PackageManifest()
 PackageManifest PackageManifest::load_from_toml(const ::std::string& path, const WorkspaceManifest* wm/*=nullptr*/)
 {
     PackageManifest rv;
-    auto package_dir = ::helpers::path(path).parent();
+    auto manifest_path = ::helpers::path(path).to_absolute();
+    auto package_dir = manifest_path.parent();
     rv.m_manifest_dir = package_dir;
 
-    TomlFile    toml_file(path);
+    TomlFile    toml_file(manifest_path.str());
     ErrorHandlerLex error_handler(toml_file.lexer());
 
     const auto* overrides = s_overrides.lookup(package_dir);

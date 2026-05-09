@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <cctype>
 #include <string>
 #include <stdexcept>
 #include "helpers.h"
@@ -38,7 +39,15 @@ public:
         return m_str != "";
     }
     bool is_absolute() const {
-        return m_str != "" && m_str[0] == '/';
+        if( m_str == "" ) {
+            return false;
+        }
+#ifdef _WIN32
+        return m_str[0] == SEP
+            || (m_str.size() >= 2 && std::isalpha(static_cast<unsigned char>(m_str[0])) && m_str[1] == ':');
+#else
+        return m_str[0] == '/';
+#endif
     }
 
     bool operator==(const path& p) const {
@@ -59,7 +68,13 @@ public:
     {
         if(!this->is_valid())
             throw ::std::runtime_error("Appending to an invalid path");
-        if(o[0] == '/')
+        if(
+#ifdef _WIN32
+            o[0] == '/' || o[0] == '\\' || (o[0] && o[1] == ':')
+#else
+            o[0] == '/'
+#endif
+            )
             throw ::std::runtime_error("Appending an absolute path to another path");
         this->m_str.push_back(SEP);
         this->m_str.append(o);
@@ -69,7 +84,13 @@ public:
     {
         if(!this->is_valid())
             throw ::std::runtime_error("Appending to an invalid path");
-        if(o[0] == '/')
+        if(
+#ifdef _WIN32
+            o[0] == '/' || o[0] == '\\' || (o.size() >= 2 && o[1] == ':')
+#else
+            o[0] == '/'
+#endif
+            )
             throw ::std::runtime_error("Appending an absolute path to another path");
         this->m_str.push_back(SEP);
         this->m_str += o;
