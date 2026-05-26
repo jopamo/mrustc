@@ -426,6 +426,7 @@ namespace
     {
         // Options for all the fully-GNU environments
         #define BACKEND_C_OPTS_GNU  {"-ffunction-sections", "-pthread"}, {"-Wl,--start-group"}, {"-Wl,--end-group", "-Wl,--gc-sections", "-l", "atomic"}
+        #define BACKEND_C_OPTS_GNU_NO_ATOMIC  {"-ffunction-sections", "-pthread"}, {"-Wl,--start-group"}, {"-Wl,--end-group", "-Wl,--gc-sections"}
         // If there's a '/' or a '\' in the filename, open it as a path, otherwise assume it's a triple.
         if( target_name.find('/') != ::std::string::npos || target_name.find('\\') != ::std::string::npos )
         {
@@ -441,14 +442,14 @@ namespace
         else if(target_name == "x86_64-linux-gnu" || target_name == "x86_64-unknown-linux-gnu")
         {
             return TargetSpec {
-                "unix", "linux", "gnu", {CodegenMode::Gnu11, true /*false*/, "x86_64-linux-gnu", BACKEND_C_OPTS_GNU},
+                "unix", "linux", "gnu", {CodegenMode::Gnu11, true /*false*/, "x86_64-linux-gnu", BACKEND_C_OPTS_GNU_NO_ATOMIC},
                 ARCH_X86_64
                 };
         }
         else if(target_name == "x86_64-linux-musl" || target_name == "x86_64-unknown-linux-musl")
         {
             return TargetSpec {
-                "unix", "linux", "musl", {CodegenMode::Gnu11, true /*false*/, "x86_64-linux-musl", BACKEND_C_OPTS_GNU},
+                "unix", "linux", "musl", {CodegenMode::Gnu11, true /*false*/, "x86_64-linux-musl", BACKEND_C_OPTS_GNU_NO_ATOMIC},
                 ARCH_X86_64
                 };
         }

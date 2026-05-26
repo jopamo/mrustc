@@ -191,6 +191,17 @@ endif
 RUSTC_ARCH := $(firstword $(subst -, ,$(RUSTC_TARGET)))
 # Directory for minicargo build script overrides
 OVERRIDE_DIR := script-overrides/$(RUSTC_CHANNEL)-$(RUSTC_VERSION)$(OVERRIDE_SUFFIX)/
+CC_RS_TARGET_ENV := $(subst -,_,$(RUSTC_TARGET))
+CC_RS_TARGET_FLAGS :=
+ifneq ($(HOST_GNU_TYPE),unknown)
+ifneq ($(HOST_GNU_TYPE),$(RUSTC_TARGET))
+ifeq ($(RUSTC_TARGET),$(LINUX_RUSTC_TARGET_DEF))
+CC_RS_TARGET_FLAGS += CFLAGS_$(CC_RS_TARGET_ENV)=--target=$(HOST_GNU_TYPE)
+CC_RS_TARGET_FLAGS += CXXFLAGS_$(CC_RS_TARGET_ENV)=--target=$(HOST_GNU_TYPE)
+endif
+endif
+endif
+CARGO_ENV_VARS += $(CC_RS_TARGET_FLAGS)
 
 
 # ---------------------------------------------------------------------
@@ -300,6 +311,7 @@ $(OUTDIR)test/libtest.so: $(RUSTC_SRC_DL)
 	test -e $@
 
 RUSTC_ENV_VARS := CFG_COMPILER_HOST_TRIPLE=$(RUSTC_TARGET)
+RUSTC_ENV_VARS += $(CC_RS_TARGET_FLAGS)
 RUSTC_ENV_VARS += LLVM_CONFIG=$(abspath $(LLVM_CONFIG))
 RUSTC_ENV_VARS += CFG_RELEASE=$(RUSTC_VERSION)	# Claiming stable
 RUSTC_ENV_VARS += CFG_RELEASE_CHANNEL=$(RUSTC_CHANNEL)
@@ -332,6 +344,22 @@ LLVM_CMAKE_OPTS += LLVM_INCLUDE_EXAMPLES=OFF LLVM_INCLUDE_TESTS=OFF LLVM_INCLUDE
 LLVM_CMAKE_OPTS += LLVM_INCLUDE_BENCHMARKS=OFF
 LLVM_CMAKE_OPTS += LLVM_ENABLE_ZLIB=OFF LLVM_ENABLE_TERMINFO=OFF LLVM_ENABLE_LIBEDIT=OFF WITH_POLLY=OFF
 LLVM_CMAKE_OPTS += CMAKE_CXX_COMPILER="$(CXX)" CMAKE_C_COMPILER="$(CC)"
+CMAKE_AR_RESOLVED := $(shell command -v $(AR) 2>/dev/null || printf '%s' '$(AR)')
+CMAKE_RANLIB_RESOLVED := $(shell command -v $(RANLIB) 2>/dev/null || printf '%s' '$(RANLIB)')
+CMAKE_NM_RESOLVED := $(shell command -v $(NM) 2>/dev/null || printf '%s' '$(NM)')
+CMAKE_LINKER_RESOLVED := $(shell command -v $(LD) 2>/dev/null || printf '%s' '$(LD)')
+ifneq ($(strip $(AR)),)
+LLVM_CMAKE_OPTS += CMAKE_AR="$(CMAKE_AR_RESOLVED)"
+endif
+ifneq ($(strip $(RANLIB)),)
+LLVM_CMAKE_OPTS += CMAKE_RANLIB="$(CMAKE_RANLIB_RESOLVED)"
+endif
+ifneq ($(strip $(NM)),)
+LLVM_CMAKE_OPTS += CMAKE_NM="$(CMAKE_NM_RESOLVED)"
+endif
+ifneq ($(strip $(LD)),)
+LLVM_CMAKE_OPTS += CMAKE_LINKER="$(CMAKE_LINKER_RESOLVED)"
+endif
 LLVM_CMAKE_OPTS += CMAKE_BUILD_TYPE=Release
 LLVM_CMAKE_OPTS += $(LLVM_CMAKE_OPTS_EXTRA)
 
@@ -390,7 +418,7 @@ RUST_TESTS_run-pass: output$(OUTDIR_SUF)/test/librust_test_helpers.a LIBS bin/te
 	./bin/testrunner$(EXESUF) -L $(OUTDIR) -L $(OUTDIR)test -o $(OUTDIR)rust_tests/run-pass $(SRCDIR_RUST_TESTS)run-pass --exceptions disabled_tests_run-pass.txt
 $(OUTDIR)test/librust_test_helpers.a: $(OUTDIR)test/rust_test_helpers.o
 	@mkdir -p $(dir $@)
-	ar cur $@ $<
+	$(AR) crs $@ $<
 ifeq ($(RUSTC_VERSION),1.19.0)
 RUST_TEST_HELPERS_C := $(RUSTCSRC)src/rt/rust_test_helpers.c
 else

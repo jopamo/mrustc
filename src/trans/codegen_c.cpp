@@ -5633,7 +5633,7 @@ namespace {
                         if( pe->spec.opt_Explicit() )
                         {
                             // Ignore, handled explicitly above
-                            if( pe->input ) {
+                            if( pe->input && !pe->output ) {
                                 inputs.push_back(&se.params[i]);
                             }
                         }
