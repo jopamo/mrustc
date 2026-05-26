@@ -6546,13 +6546,52 @@ namespace {
             }
             // --- Pointer manipulation
             else if( name == "offset" ) {   // addition, with the reqirement that the resultant pointer be in bounds
-                emit_lvalue(e.ret_val); m_of << " = "; emit_param(e.args.at(0)); m_of << " + "; emit_param(e.args.at(1));
+                // Use integer address arithmetic instead of C pointer arithmetic.
+                // The C backend regularly round-trips pointers through integers
+                // (e.g. tagged pointers / with_addr-style helpers). Reapplying
+                // those adjusted addresses via `ptr + ofs` is UB in C and can
+                // let the host compiler misoptimise null checks away.
+                ::HIR::TypeRef tmp_ptr;
+                const auto& ptr_ty = m_mir_res->get_param_type(tmp_ptr, e.args.at(0));
+                const auto* elem_ty = ptr_ty.data().opt_Pointer() ? &ptr_ty.data().as_Pointer().inner
+                    : ptr_ty.data().opt_Borrow() ? &ptr_ty.data().as_Borrow().inner
+                    : nullptr;
+                MIR_ASSERT(mir_res, elem_ty, "offset expects a pointer-like first argument, got " << ptr_ty);
+                ::HIR::TypeRef tmp;
+                const auto& ret_ty = m_mir_res->get_lvalue_type(tmp, e.ret_val);
+                emit_lvalue(e.ret_val); m_of << " = (";
+                emit_ctype(ret_ty);
+                m_of << ")(";
+                m_of << "((uintptr_t)("; emit_param(e.args.at(0)); m_of << "))";
+                m_of << " + ((uintptr_t)("; emit_param(e.args.at(1)); m_of << ")) * sizeof("; emit_ctype(*elem_ty); m_of << ")";
+                m_of << ")";
             }
             else if( name == "arith_offset" ) { // addition, with no requirements
-                emit_lvalue(e.ret_val); m_of << " = "; emit_param(e.args.at(0)); m_of << " + "; emit_param(e.args.at(1));
+                ::HIR::TypeRef tmp_ptr;
+                const auto& ptr_ty = m_mir_res->get_param_type(tmp_ptr, e.args.at(0));
+                const auto* elem_ty = ptr_ty.data().opt_Pointer() ? &ptr_ty.data().as_Pointer().inner
+                    : ptr_ty.data().opt_Borrow() ? &ptr_ty.data().as_Borrow().inner
+                    : nullptr;
+                MIR_ASSERT(mir_res, elem_ty, "arith_offset expects a pointer-like first argument, got " << ptr_ty);
+                ::HIR::TypeRef tmp;
+                const auto& ret_ty = m_mir_res->get_lvalue_type(tmp, e.ret_val);
+                emit_lvalue(e.ret_val); m_of << " = (";
+                emit_ctype(ret_ty);
+                m_of << ")(";
+                m_of << "((uintptr_t)("; emit_param(e.args.at(0)); m_of << "))";
+                m_of << " + ((uintptr_t)("; emit_param(e.args.at(1)); m_of << ")) * sizeof("; emit_ctype(*elem_ty); m_of << ")";
+                m_of << ")";
             }
             else if( name == "ptr_offset_from" ) {  // effectively subtraction
-                emit_lvalue(e.ret_val); m_of << " = "; emit_param(e.args.at(0)); m_of << " - "; emit_param(e.args.at(1));
+                ::HIR::TypeRef tmp_ptr;
+                const auto& ptr_ty = m_mir_res->get_param_type(tmp_ptr, e.args.at(0));
+                const auto* elem_ty = ptr_ty.data().opt_Pointer() ? &ptr_ty.data().as_Pointer().inner
+                    : ptr_ty.data().opt_Borrow() ? &ptr_ty.data().as_Borrow().inner
+                    : nullptr;
+                MIR_ASSERT(mir_res, elem_ty, "ptr_offset_from expects a pointer-like first argument, got " << ptr_ty);
+                emit_lvalue(e.ret_val); m_of << " = ";
+                m_of << "((intptr_t)(((uintptr_t)("; emit_param(e.args.at(0)); m_of << ")) - ((uintptr_t)("; emit_param(e.args.at(1)); m_of << "))))";
+                m_of << " / (intptr_t)sizeof("; emit_ctype(*elem_ty); m_of << ")";
             }
             else if( name == "ptr_guaranteed_eq" ) {
                 emit_lvalue(e.ret_val); m_of << " = ("; emit_param(e.args.at(0)); m_of << " == "; emit_param(e.args.at(1)); m_of << ")";
@@ -6566,7 +6605,14 @@ namespace {
             }
             else if( name == "ptr_offset_from_unsigned" ) {
                 // `fn ptr_offset_from_unsigned<T>(ptr: *const T, base: *const T) -> usize`
-                emit_lvalue(e.ret_val); m_of << "= ( ("; emit_param(e.args.at(0)); m_of << ") - ("; emit_param(e.args.at(1)); m_of << "))";
+                ::HIR::TypeRef tmp_ptr;
+                const auto& ptr_ty = m_mir_res->get_param_type(tmp_ptr, e.args.at(0));
+                const auto* elem_ty = ptr_ty.data().opt_Pointer() ? &ptr_ty.data().as_Pointer().inner
+                    : ptr_ty.data().opt_Borrow() ? &ptr_ty.data().as_Borrow().inner
+                    : nullptr;
+                MIR_ASSERT(mir_res, elem_ty, "ptr_offset_from_unsigned expects a pointer-like first argument, got " << ptr_ty);
+                emit_lvalue(e.ret_val); m_of << "= ( ((uintptr_t)("; emit_param(e.args.at(0)); m_of << ")) - ((uintptr_t)("; emit_param(e.args.at(1)); m_of << ")) )";
+                m_of << " / sizeof("; emit_ctype(*elem_ty); m_of << ")";
             }
             // ----
             else if( name == "bswap" ) {

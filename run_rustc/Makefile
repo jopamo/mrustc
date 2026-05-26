@@ -99,6 +99,19 @@ HELLO_RUSTFLAGS += -C target-feature=-crt-static
 endif
 
 OUTDIR := output$(OUTDIR_SUF)/
+ifeq ($(filter %-linux-musl,$(RUSTC_TARGET)),)
+MINICARGO_SYSROOT_FEATURES :=
+SYSROOT_CARGO_FEATURES := panic-unwind
+LLVM_CXX_RUNTIME_ENV :=
+else
+MINICARGO_SYSROOT_FEATURES := --features system-llvm-libunwind
+SYSROOT_CARGO_FEATURES := panic-unwind,system-llvm-libunwind
+LLVM_CXX_RUNTIME_ENV := LLVM_USE_LIBCXX=1
+endif
+comma := ,
+SYSROOT_BUILD_TAG := $(subst $(comma),_,$(SYSROOT_CARGO_FEATURES))
+RUN_RUSTC_BUILD_REV := 2
+MUSL_LIBCXX_TARGET_INCLUDE := /usr/include/$(HOST_GNU_TYPE)/c++/v1
 # Stage 1: standard library built with `rustc_m` (using minicargo)
 PREFIX_S := $(OUTDIR)prefix-s/
 LIBDIR_S := $(PREFIX_S)lib/rustlib/$(RUSTC_TARGET)/lib/
@@ -133,7 +146,13 @@ CARGO_FLAGS := --target $(RUSTC_TARGET) -j $(PARLEVEL) --release --verbose
 CARGO_ENV := CFG_COMPILER_HOST_TRIPLE=$(RUSTC_TARGET)
 CARGO_ENV += RUSTC_BOOTSTRAP=1
 CARGO_ENV += CARGO_HOME=$(CARGO_HOME)
+CARGO_ENV += $(LLVM_CXX_RUNTIME_ENV)
 CARGO_ENV += RUSTFLAGS="-Z force-unstable-if-unmarked -C link_args=-Wl,-rpath,\$$ORIGIN/../lib -C target-feature=-crt-static"
+ifneq ($(filter %-linux-musl,$(RUSTC_TARGET)),)
+ifneq ($(wildcard $(MUSL_LIBCXX_TARGET_INCLUDE)/__config_site),)
+CARGO_ENV += CPLUS_INCLUDE_PATH=$(MUSL_LIBCXX_TARGET_INCLUDE)
+endif
+endif
 
 fn_opt_copy = (test -e "$2" && test ! "$1" -nt "$2") || cp "$1" "$2"
 
@@ -184,7 +203,7 @@ $(LIBDIR_S)libstd.rlib: $(BINDIR_S)rustc $(MINICARGO) Makefile
 	@echo "[MINICARGO] $(RUST_SRC_LIBS)std > $(LIBDIR_S)"
 	mkdir -p $(LIBDIR_S)
 ifneq ($(TARGETVER_LEAST_1_74),)
-	$V+STD_ENV_ARCH=$(RUSTC_ARCH) MRUSTC_PATH=$(abspath $(BINDIR_S)rustc) $(MINICARGO) --vendor-dir $(VENDOR_DIR) --script-overrides ../script-overrides/stable-$(RUSTC_VERSION)-$(PLATFORM)/ --output-dir $(LIBDIR_S) $(RUST_SRC_LIBS)sysroot
+	$V+STD_ENV_ARCH=$(RUSTC_ARCH) MRUSTC_PATH=$(abspath $(BINDIR_S)rustc) $(MINICARGO) --vendor-dir $(VENDOR_DIR) --script-overrides ../script-overrides/stable-$(RUSTC_VERSION)-$(PLATFORM)/ --output-dir $(LIBDIR_S) $(MINICARGO_SYSROOT_FEATURES) $(RUST_SRC_LIBS)sysroot
 else
 	$V+MRUSTC_PATH=$(abspath $(BINDIR_S)rustc) $(MINICARGO) --vendor-dir $(VENDOR_DIR) --script-overrides ../script-overrides/stable-$(RUSTC_VERSION)-$(PLATFORM)/ --output-dir $(LIBDIR_S) $(RUST_SRC_LIBS)std
 	$V+MRUSTC_PATH=$(abspath $(BINDIR_S)rustc) $(MINICARGO) --vendor-dir $(VENDOR_DIR) --script-overrides ../script-overrides/stable-$(RUSTC_VERSION)-$(PLATFORM)/ --output-dir $(LIBDIR_S) $(RUST_SRC_LIBS)panic_unwind
@@ -199,13 +218,14 @@ $(BINDIR_S)hello_world: $(RUST_SRC_HELLO) $(LIBDIR_S)libstd.rlib $(BINDIR_S)rust
 # ---
 # Stage 2: Build a proper libstd (which includes dynamc libraries too)
 # ---
-CARGO_OUTDIR_STAGE2_STD := $(OUTDIR)build-std2/$(RUSTC_TARGET)/release/
-CARGO_ENV_STAGE2_STD := CARGO_TARGET_DIR=$(OUTDIR)build-std2 RUSTC=$(abspath rustc_proxy.sh) PROXY_RUSTC=$(abspath $(BINDIR_2)rustc) PROXY_MRUSTC=$(abspath $(BINDIR_S)rustc) $(CARGO_ENV)
+STAGE2_STD_TARGET_DIR := $(OUTDIR)build-std2-$(SYSROOT_BUILD_TAG)-r$(RUN_RUSTC_BUILD_REV)
+CARGO_OUTDIR_STAGE2_STD := $(STAGE2_STD_TARGET_DIR)/$(RUSTC_TARGET)/release/
+CARGO_ENV_STAGE2_STD := CARGO_TARGET_DIR=$(STAGE2_STD_TARGET_DIR) RUSTC=$(abspath rustc_proxy.sh) PROXY_RUSTC=$(abspath $(BINDIR_2)rustc) PROXY_MRUSTC=$(abspath $(BINDIR_S)rustc) $(CARGO_ENV)
 $(LIBDIR_2)libtest.rlib: $(LIBDIR_S)libstd.rlib $(BINDIR_2)rustc $(BINDIR_S)rustc $(BINDIR_S)cargo $(CARGO_HOME)config Makefile
 	@mkdir -p $(LIBDIR_2)
-	@echo [CARGO] $(RUST_SRC_LIBS)test/Cargo.toml '>' $(OUTDIR)build-std2
+	@echo [CARGO] $(RUST_SRC_LIBS)test/Cargo.toml '>' $(STAGE2_STD_TARGET_DIR)
 ifneq ($(TARGETVER_LEAST_1_74),)
-	$V$(CARGO_ENV_STAGE2_STD) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_LIBS)sysroot/Cargo.toml --features panic-unwind
+	$V$(CARGO_ENV_STAGE2_STD) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_LIBS)sysroot/Cargo.toml --features $(SYSROOT_CARGO_FEATURES)
 else ifeq ($(TARGETVER_LEAST_1_39),)
 	$V$(CARGO_ENV_STAGE2_STD) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_LIBS)std/Cargo.toml --features panic-unwind
 	$Vcp --remove-destination $(CARGO_OUTDIR_STAGE2_STD)deps/*.rlib $(CARGO_OUTDIR_STAGE2_STD)deps/*.$(DYLIB_EXT) $(LIBDIR_2)
@@ -223,15 +243,16 @@ $(BINDIR_2)rustc: ../output$(OUTDIR_SUF)/rustc
 # Stage 3: Build rustc using the above (full) std for building other libs
 # ---
 
-CARGO_OUTDIR_RUSTC := $(OUTDIR)build-rustc/$(RUSTC_TARGET)/release/
-CARGO_ENV_RUSTC := CARGO_TARGET_DIR=$(OUTDIR)build-rustc RUSTC=$(abspath rustc_proxy.sh) PROXY_RUSTC=$(abspath $(BINDIR_2)rustc) PROXY_MRUSTC=$(abspath $(BINDIR_S)rustc) $(CARGO_ENV)
+RUSTC_STAGE_TARGET_DIR := $(OUTDIR)build-rustc-$(SYSROOT_BUILD_TAG)-r$(RUN_RUSTC_BUILD_REV)
+CARGO_OUTDIR_RUSTC := $(RUSTC_STAGE_TARGET_DIR)/$(RUSTC_TARGET)/release/
+CARGO_ENV_RUSTC := CARGO_TARGET_DIR=$(RUSTC_STAGE_TARGET_DIR) RUSTC=$(abspath rustc_proxy.sh) PROXY_RUSTC=$(abspath $(BINDIR_2)rustc) PROXY_MRUSTC=$(abspath $(BINDIR_S)rustc) $(CARGO_ENV)
 # - Build rustc with itself (so we have a rustc with the right ABI)
 $(BINDIR)rustc: $(BINDIR_2)rustc $(BINDIR_S)cargo $(CARGO_HOME)config $(LIBDIR_2)libtest.rlib Makefile
 	@mkdir -p $(PREFIX)tmp
-	@echo [CARGO] $(RUST_SRC_RUSTC)Cargo.toml '>' $(OUTDIR)build-rustc/
+	@echo [CARGO] $(RUST_SRC_RUSTC)Cargo.toml '>' $(RUSTC_STAGE_TARGET_DIR)/
 	$V$(RUSTC_ENV_VARS) TMPDIR=$(abspath $(PREFIX)tmp) $(CARGO_ENV_RUSTC) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_RUSTC)Cargo.toml $(CARGO_FLAGS_rustc)
 ifeq ($(RUSTC_VERSION),1.39.0)
-	@echo [CARGO] $(RUST_SRC_CODEGEN)Cargo.toml '>' $(OUTDIR)build-rustc/
+	@echo [CARGO] $(RUST_SRC_CODEGEN)Cargo.toml '>' $(RUSTC_STAGE_TARGET_DIR)/
 	$V$(RUSTC_ENV_VARS) TMPDIR=$(abspath $(PREFIX)tmp) $(CARGO_ENV_RUSTC) $(BINDIR_S)cargo rustc $(CARGO_FLAGS) --manifest-path $(RUST_SRC_CODEGEN)Cargo.toml -- -L $(abspath $(CARGO_OUTDIR_RUSTC)deps)
 	@mkdir -p $(LIBDIR)../codegen-backends
 	@echo "[CP] libraries and results ($@)"
@@ -303,7 +324,7 @@ endif
 #
 #
 $(BINDIR)cargo: $(BINDIR)rustc
-	@echo [CARGO] $(RUST_SRC_RUSTC)Cargo.toml '>' $(OUTDIR)build-rustc/
+	@echo [CARGO] $(RUST_SRC_RUSTC)Cargo.toml '>' $(RUSTC_STAGE_TARGET_DIR)/
 	$VTMPDIR=$(abspath $(PREFIX)tmp) $(CARGO_ENV_RUSTC) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_CARGO)Cargo.toml
 	$Vcp $(CARGO_OUTDIR_RUSTC)cargo $(BINDIR)cargo
 
@@ -311,13 +332,14 @@ $(BINDIR)cargo: $(BINDIR)rustc
 #
 #
 #
-CARGO_OUTDIR_STAGE3_STD := $(OUTDIR)build-std/$(RUSTC_TARGET)/release/
-CARGO_ENV_STAGE3_STD := CARGO_TARGET_DIR=$(OUTDIR)build-std RUSTC=$(abspath rustc_proxy.sh) PROXY_RUSTC=$(abspath $(BINDIR)rustc) PROXY_MRUSTC=$(abspath $(BINDIR_2)rustc) $(CARGO_ENV)
+STAGE3_STD_TARGET_DIR := $(OUTDIR)build-std-$(SYSROOT_BUILD_TAG)-r$(RUN_RUSTC_BUILD_REV)
+CARGO_OUTDIR_STAGE3_STD := $(STAGE3_STD_TARGET_DIR)/$(RUSTC_TARGET)/release/
+CARGO_ENV_STAGE3_STD := CARGO_TARGET_DIR=$(STAGE3_STD_TARGET_DIR) RUSTC=$(abspath rustc_proxy.sh) PROXY_RUSTC=$(abspath $(BINDIR)rustc) PROXY_MRUSTC=$(abspath $(BINDIR_2)rustc) $(CARGO_ENV)
 $(LIBDIR)libstd.rlib: $(BINDIR)rustc
 	@mkdir -p $(LIBDIR)
-	@echo [CARGO] $(RUST_SRC_LIBS)test/Cargo.toml '>' $(OUTDIR)build-std2
+	@echo [CARGO] $(RUST_SRC_LIBS)test/Cargo.toml '>' $(STAGE3_STD_TARGET_DIR)
 ifneq ($(TARGETVER_LEAST_1_74),)
-	$V$(CARGO_ENV_STAGE3_STD) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_LIBS)sysroot/Cargo.toml --features panic-unwind
+	$V$(CARGO_ENV_STAGE3_STD) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_LIBS)sysroot/Cargo.toml --features $(SYSROOT_CARGO_FEATURES)
 else ifeq ($(TARGETVER_LEAST_1_39),)
 	$V$(CARGO_ENV_STAGE3_STD) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_LIBS)std/Cargo.toml --features panic-unwind
 	$Vcp --remove-destination $(CARGO_OUTDIR_STAGE3_STD)deps/*.rlib $(CARGO_OUTDIR_STAGE3_STD)deps/*.$(DYLIB_EXT) $(LIBDIR)
