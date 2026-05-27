@@ -169,6 +169,7 @@ cxx = "${host_cxx}"
 ar = "${host_ar}"
 ranlib = "${host_ranlib}"
 linker = "${host_cc}"
+llvm-libunwind = "in-tree"
 crt-static = false
 EOF
     fi
