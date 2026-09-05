@@ -1773,7 +1773,10 @@ namespace {
                 fields.push_back(fields.size());
                 zsts.push_back(sz == 0);
             }
-            if(packing_max_align == 0 && max_align != repr->align /*&& repr->size > 0*/) {
+            const auto inferred_align = packing_max_align > 0
+                ? std::min(max_align, static_cast<size_t>(packing_max_align))
+                : max_align;
+            if(inferred_align != repr->align /*&& repr->size > 0*/) {
                 has_manual_align = true;
             }
             // repr(align(N)): always emit an explicit alignment attribute. The C compiler can't
