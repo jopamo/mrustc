@@ -41,7 +41,7 @@ The bootstrap helper scripts default to `MRUSTC_PARLEVEL=$(nproc)` for the mrust
 
 To bootstrap the next validated compiler from the mrustc-built 1.90.0 toolchain, run `./build-1.91.1.sh`. This produces `output-1.91.1/`. Set `COMPARE_WITH_OFFICIAL=1` if you also want to build the official-bootstrap copy and compare the resulting archives.
 
-Once `output-1.91.1/` exists, you can keep walking forward with the official bootstrap using `./build-official-step.sh 1.91.1 1.92.0`, or build a whole chain with `./build-official-chain.sh 1.91.1 stable`. The known validated chain to current stable is `1.91.1 -> 1.92.0 -> 1.93.1 -> 1.94.1 -> 1.95.0`.
+Once `output-1.91.1/` exists, you can keep walking forward with the official bootstrap using `./build-official-step.sh 1.91.1 1.92.0`, or build a whole chain with `./build-official-chain.sh 1.91.1 stable`. The configured shortest chain to current stable is `1.91.1 -> 1.92.0 -> 1.93.1 -> 1.94.1 -> 1.95.0 -> 1.96.1 -> 1.97.1 -> 1.98.1`.
 
 The bootstrap scripts also patch rustc/bootstrap so a sysroot installed under `/usr` still behaves correctly when `/usr/lib64` is just a symlink to `/usr/lib`.
 

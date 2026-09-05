@@ -25,6 +25,9 @@ next_bootstrap_release() {
 		1.92.0) printf '1.93.1\n' ;;
 		1.93.1) printf '1.94.1\n' ;;
 		1.94.1) printf '1.95.0\n' ;;
+		1.95.0) printf '1.96.1\n' ;;
+		1.96.1) printf '1.97.1\n' ;;
+		1.97.1) printf '1.98.1\n' ;;
 		*) next_release "$1" ;;
 	esac
 }

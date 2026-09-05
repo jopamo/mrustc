@@ -255,20 +255,41 @@ bin/testrunner$(EXESUF):
 RUSTC_SRC_TARBALL := rustc-$(RUSTC_VERSION)-src.tar.gz
 $(RUSTC_SRC_TARBALL):
 	@echo [CURL] $@
-	@rm -f $@
-	@curl -sS https://static.rust-lang.org/dist/$@ -o $@
+	@set -e; \
+	tmp="$@.tmp.$$$$"; \
+	trap 'rm -f "$$tmp"' EXIT INT TERM; \
+	curl -fL --retry 3 https://static.rust-lang.org/dist/$@ -o "$$tmp"; \
+	mv "$$tmp" "$@"; \
+	trap - EXIT
 rustc-$(RUSTC_VERSION)-src/extracted: $(RUSTC_SRC_TARBALL)
-	tar -xzf $(RUSTC_SRC_TARBALL)
-	touch $@
+	@set -e; \
+	tmp_dir=".rustc-$(RUSTC_VERSION)-src.extracting.$$$$"; \
+	trap 'rm -rf "$$tmp_dir"' EXIT INT TERM; \
+	mkdir "$$tmp_dir"; \
+	if ! tar -xzf $(RUSTC_SRC_TARBALL) -C "$$tmp_dir"; then \
+		echo "[RETRY] Re-downloading invalid $(RUSTC_SRC_TARBALL)"; \
+		rm -rf "$$tmp_dir"; \
+		rm -f $(RUSTC_SRC_TARBALL); \
+		$(MAKE) --no-print-directory -f minicargo.mk $(RUSTC_SRC_TARBALL); \
+		mkdir "$$tmp_dir"; \
+		tar -xzf $(RUSTC_SRC_TARBALL) -C "$$tmp_dir"; \
+	fi; \
+	test -d "$$tmp_dir/rustc-$(RUSTC_VERSION)-src"; \
+	rm -rf rustc-$(RUSTC_VERSION)-src; \
+	mv "$$tmp_dir/rustc-$(RUSTC_VERSION)-src" .; \
+	touch $@; \
+	trap - EXIT
 # Compare contents, not mtimes: a checkout churns mtimes and re-patching fails.
 $(RUSTC_SRC_DL): rustc-$(RUSTC_VERSION)-src/extracted rustc-$(RUSTC_VERSION)-src.patch scripts/fix_rust_libdir_symlink.py
-	@cmp -s rustc-$(RUSTC_VERSION)-src.patch $@ && exit 0; \
-	echo [PATCH] rustc-$(RUSTC_VERSION)-src; \
-	files=`cat $@ rustc-$(RUSTC_VERSION)-src.patch 2>/dev/null | sed -n 's|^--- |$(RUSTCSRC)|p' | sort -u`; \
-	tar -xzf $(RUSTC_SRC_TARBALL) $$files && \
-	( cd $(RUSTCSRC) && patch -p0 < ../rustc-$(RUSTC_VERSION)-src.patch ) && \
+	@set -e; \
+	if ! cmp -s rustc-$(RUSTC_VERSION)-src.patch $@; then \
+		echo [PATCH] rustc-$(RUSTC_VERSION)-src; \
+		files=`cat $@ rustc-$(RUSTC_VERSION)-src.patch 2>/dev/null | sed -n 's|^--- |$(RUSTCSRC)|p' | sort -u`; \
+		tar -xzf $(RUSTC_SRC_TARBALL) $$files; \
+		( cd $(RUSTCSRC) && patch -p0 < ../rustc-$(RUSTC_VERSION)-src.patch ); \
+	fi; \
+	python3 scripts/fix_rust_libdir_symlink.py $(RUSTCSRC); \
 	cp rustc-$(RUSTC_VERSION)-src.patch $@
-	python3 scripts/fix_rust_libdir_symlink.py $(RUSTCSRC)
 
 # Standard library crates
 # - libstd, libpanic_unwind, libtest and libgetopts
@@ -366,6 +387,9 @@ LLVM_CMAKE_OPTS += $(LLVM_CMAKE_OPTS_EXTRA)
 
 $(RUSTCSRC)build/bin/llvm-config: $(RUSTCSRC)build/Makefile
 	$Vcd $(RUSTCSRC)build && $(MAKE) -j $(LLVM_PARLEVEL)
+
+$(RUSTCSRC)$(LLVM_DIR)/CMakeLists.txt: | $(RUSTC_SRC_DL)
+	@test -e $@
 
 $(RUSTCSRC)build/Makefile: $(RUSTCSRC)$(LLVM_DIR)/CMakeLists.txt
 	@mkdir -p $(RUSTCSRC)build
