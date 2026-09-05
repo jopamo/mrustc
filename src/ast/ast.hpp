@@ -249,6 +249,7 @@ public:
         bool is_cold = false;
         bool is_naked = false;
         std::vector<unsigned>   rustc_legacy_const_generics;
+        std::vector<std::string> target_features;
 
         std::string link_name;
         std::string link_section;

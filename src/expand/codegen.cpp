@@ -572,12 +572,25 @@ class CHandler_Linkage:
 STATIC_DECORATOR("linkage", CHandler_Linkage);
 
 class CHandler_TargetFeature:
-    public ExpandDecorator
+    public Common_Function
 {
-    AttrStage   stage() const override { return AttrStage::Pre; }
-
-    void handle(const Span& sp, const AST::Attribute& mi, ::AST::Crate& crate, const AST::AbsolutePath& path, AST::Module& , size_t , slice<const AST::Attribute> attrs, const AST::Visibility& vis, AST::Item&i) const override {
-        // TODO: Only valid on functions?
+    void handle(const AST::Attribute& mi, AST::Function& fcn) const override {
+        TTStream lex(mi.span(), ParseState(), mi.data());
+        lex.getTokenCheck(TOK_PAREN_OPEN);
+        do {
+            auto key = lex.getTokenCheck(TOK_IDENT).ident().name;
+            if( key != "enable" ) {
+                ERROR(mi.span(), E0000, "Unknown target_feature option `" << key << "`");
+            }
+            lex.getTokenCheck(TOK_EQUAL);
+            auto features = lex.getTokenCheck(TOK_STRING).str();
+            if( features.empty() ) {
+                ERROR(mi.span(), E0000, "Empty feature list in #[target_feature]");
+            }
+            fcn.m_markings.target_features.push_back(std::move(features));
+        } while( lex.getTokenIf(TOK_COMMA) );
+        lex.getTokenCheck(TOK_PAREN_CLOSE);
+        lex.getTokenCheck(TOK_EOF);
     }
 };
 STATIC_DECORATOR("target_feature", CHandler_TargetFeature);

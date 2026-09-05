@@ -5684,6 +5684,15 @@ namespace {
                         case 'e':
                             m_of << 'k';    // x86: `k` selects eax instead of rax
                             break;
+                        case 'w':
+                        case 'x':
+                            MIR_ASSERT(mir_res, Target_GetCurSpec().m_arch.m_name == "aarch64",
+                                "AArch64 asm register modifier `" << f.modifier << "` used on "
+                                << Target_GetCurSpec().m_arch.m_name);
+                            // GCC uses the same modifiers to select the 32-bit
+                            // W or 64-bit X view of an AArch64 general register.
+                            m_of << f.modifier;
+                            break;
                         default:
                             MIR_TODO(mir_res, "Asm2 GCC: modifier " << f.modifier << " - " << stmt);
                         }
@@ -5863,6 +5872,25 @@ namespace {
                     break;
                 case Compiler::Msvc:
                     TODO(Span(), "Naked functions in msvc");
+                }
+            }
+            if( !item.m_markings.target_features.empty() ) {
+                switch(m_compiler)
+                {
+                case Compiler::Gcc:
+                    m_of << "__attribute__((target(\"";
+                    for(size_t i = 0; i < item.m_markings.target_features.size(); i ++)
+                    {
+                        if( i != 0 )
+                            m_of << ",";
+                        m_of << FmtEscaped(item.m_markings.target_features[i]);
+                    }
+                    m_of << "\"))) ";
+                    break;
+                case Compiler::Msvc:
+                    // MSVC has no per-function equivalent of GCC's target
+                    // attribute. Keep the existing global target selection.
+                    break;
                 }
             }
             auto cb = FMT_CB(ss,

@@ -210,6 +210,7 @@ public:
 
     struct Markings {
         std::vector<unsigned> rustc_legacy_const_generics;
+        std::vector<std::string> target_features;
         bool track_caller = false;
         bool is_naked = false;
         enum Inline {

@@ -1853,6 +1853,7 @@ namespace {
     {
         markings.track_caller = true;
     }
+    markings.target_features = f.m_markings.target_features;
     markings.is_naked = f.m_markings.is_naked;
 
     ::HIR::Linkage  linkage;
