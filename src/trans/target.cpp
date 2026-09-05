@@ -474,6 +474,13 @@ namespace
                 ARCH_ARM64
                 };
         }
+        else if(target_name == "aarch64-linux-musl" || target_name == "aarch64-unknown-linux-musl")
+        {
+            return TargetSpec {
+                "unix", "linux", "musl", {CodegenMode::Gnu11, false, "aarch64-linux-musl", BACKEND_C_OPTS_GNU},
+                ARCH_ARM64
+                };
+        }
         else if(target_name == "m68k-linux-gnu" || target_name == "m68k-unknown-linux-gnu")
         {
             return TargetSpec {
