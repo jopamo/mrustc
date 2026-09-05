@@ -69,6 +69,10 @@ TARGETVER_LEAST_1_74 := $(shell test "$(RUSTC_VERSION)" ">" "1.74" && echo yes)
 
 RUSTC_BINNAME := rustc_binary
 CARGO_FLAGS_rustc := 
+CARGO_FLAGS_cargo :=
+ifneq ($(RUSTC_VERSION),1.19.0)
+ CARGO_FLAGS_cargo += --features vendored-openssl
+endif
 ifneq ($(TARGETVER_LEAST_1_54),)
  RUST_SRC_LIBS := $(RUST_SRC)library/
  RUST_SRC_RUSTC := $(RUST_SRC)compiler/rustc/
@@ -329,7 +333,7 @@ endif
 #
 $(BINDIR)cargo: $(BINDIR)rustc
 	@echo [CARGO] $(RUST_SRC_RUSTC)Cargo.toml '>' $(RUSTC_STAGE_TARGET_DIR)/
-	$VTMPDIR=$(abspath $(PREFIX)tmp) $(CARGO_ENV_RUSTC) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_CARGO)Cargo.toml
+	$VTMPDIR=$(abspath $(PREFIX)tmp) $(CARGO_ENV_RUSTC) $(BINDIR_S)cargo build $(CARGO_FLAGS) --manifest-path $(RUST_SRC_CARGO)Cargo.toml $(CARGO_FLAGS_cargo)
 	$Vcp $(CARGO_OUTDIR_RUSTC)cargo $(BINDIR)cargo
 
 
