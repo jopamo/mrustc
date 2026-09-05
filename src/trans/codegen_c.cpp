@@ -7349,12 +7349,23 @@ namespace {
             else if( name == "ctpop" ) {
                 emit_lvalue(e.ret_val); m_of << " = ";
 
-                if( type_is_emulated_i128(params.m_types.at(0)) )
+                const auto& ty = params.m_types.at(0);
+                if( type_is_emulated_i128(ty) )
                 {
                     m_of << "popcount128("; emit_param(e.args.at(0)); m_of << ")";
                     if( TARGETVER_LEAST_1_90 ) {
                         m_of << ".lo";
                     }
+                }
+                else if( ty == ::HIR::CoreType::U128 || ty == ::HIR::CoreType::I128 )
+                {
+                    // __builtin_popcountll truncates native __int128 values.
+                    // Count both halves explicitly.
+                    m_of << "__builtin_popcountll((uint64_t)(";
+                    emit_param(e.args.at(0));
+                    m_of << ")) + __builtin_popcountll((uint64_t)((uint128_t)(";
+                    emit_param(e.args.at(0));
+                    m_of << ") >> 64))";
                 }
                 else
                 {
