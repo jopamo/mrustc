@@ -39,7 +39,7 @@ namespace AsmCommon {
         //x86_mm, // Requires
         x86_kreg,
 
-        //aarch64_reg,
+        aarch64_reg,
         //aarch64_vreg,
         
         //arm_reg,
@@ -108,6 +108,7 @@ namespace AsmCommon {
         case RegisterClass::x86_kreg:   return "kreg";
         case RegisterClass::riscv_reg:  return "reg";
         case RegisterClass::riscv_freg: return "freg";
+        case RegisterClass::aarch64_reg: return "reg";
         }
         throw "";
     }
