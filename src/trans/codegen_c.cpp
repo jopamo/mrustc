@@ -2803,6 +2803,22 @@ namespace {
                         << "\treturn rv;\n"
                         ;
                 }
+                else if( item.m_linkage.name == "llvm.aarch64.isb" ) {
+                    switch(m_compiler)
+                    {
+                    case Compiler::Gcc:
+                        // LLVM only accepts the full-system (SY) encoding for
+                        // this intrinsic. The memory clobber preserves its
+                        // compiler-barrier semantics.
+                        m_of << "\tassert(arg0 == 15);\n";
+                        m_of << "\t__asm__ __volatile__ (\"isb sy\" ::: \"memory\");\n";
+                        break;
+                    case Compiler::Msvc:
+                        m_of << "\t__isb(arg0);\n";
+                        break;
+                    }
+                    m_of << "\treturn;\n";
+                }
                 else if( item.m_linkage.name == "llvm.x86.sse2.psrli.d") {
                     m_of
                         << "\tconst uint32_t* src = (const uint32_t*)&arg0;\n"
