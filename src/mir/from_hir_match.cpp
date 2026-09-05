@@ -2371,14 +2371,24 @@ void sort_rulesets(RulesetRef rulesets, size_t idx)
     if(rulesets[0].size() == 0)
         return ;
 
-    bool found_non_any = false;
-    for(size_t i = 0; i < rulesets.size(); i ++)
+    // Skip columns containing only wildcards iteratively.  Large generated
+    // matches can have thousands of such columns, so recursing once per
+    // column exhausts the compiler's stack.
+    for(;; idx ++)
     {
-        assert(idx < rulesets[i].size());
-        if( !rulesets[i][idx].is_Any() )
-            found_non_any = true;
+        if( idx >= rulesets[0].size() )
+            return ;
+
+        bool found_non_any = false;
+        for(size_t i = 0; i < rulesets.size(); i ++)
+        {
+            assert(idx < rulesets[i].size());
+            if( !rulesets[i][idx].is_Any() )
+                found_non_any = true;
+        }
+        if( found_non_any )
+            break;
     }
-    if( found_non_any )
     {
         TRACE_FUNCTION_F(idx);
         for(size_t i = 0; i < rulesets.size(); i ++)
@@ -2434,13 +2444,6 @@ void sort_rulesets(RulesetRef rulesets, size_t idx)
                 }
             }
             sort_rulesets(rulesets.slice(start, rulesets.size()-start), idx+1);
-        }
-    }
-    else
-    {
-        if( idx + 1 < rulesets[0].size() )
-        {
-            sort_rulesets(rulesets, idx + 1);
         }
     }
 }
@@ -4117,4 +4120,3 @@ void MatchGenGrouped::gen_dispatch_splitslice(const field_path_t& field_path, co
         m_builder.set_cur_block(next);
     }
 }
-
