@@ -470,14 +470,14 @@ namespace
         else if(target_name == "aarch64-linux-gnu" || target_name == "aarch64-unknown-linux-gnu")
         {
             return TargetSpec {
-                "unix", "linux", "gnu", {CodegenMode::Gnu11, false, "aarch64-linux-gnu", BACKEND_C_OPTS_GNU},
+                "unix", "linux", "gnu", {CodegenMode::Gnu11, false, "aarch64-linux-gnu", BACKEND_C_OPTS_GNU_NO_ATOMIC},
                 ARCH_ARM64
                 };
         }
         else if(target_name == "aarch64-linux-musl" || target_name == "aarch64-unknown-linux-musl")
         {
             return TargetSpec {
-                "unix", "linux", "musl", {CodegenMode::Gnu11, false, "aarch64-linux-musl", BACKEND_C_OPTS_GNU},
+                "unix", "linux", "musl", {CodegenMode::Gnu11, false, "aarch64-linux-musl", BACKEND_C_OPTS_GNU_NO_ATOMIC},
                 ARCH_ARM64
                 };
         }
