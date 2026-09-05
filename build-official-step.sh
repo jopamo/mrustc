@@ -115,36 +115,39 @@ EOF
 
 append_target_bootstrap_config() {
 	local cfg_path="$1"
-	local host_gnu_type host_cc host_cxx wrapper_dir target_cc target_cxx target_linker
+	local host_gnu_type host_cc host_cxx host_ar host_ranlib
+	local wrapper_dir target_cc target_cxx target_linker
 	cat - >> "${cfg_path}" <<EOF
 [target.${RUSTC_TARGET}]
 EOF
 	if [[ "${RUSTC_TARGET}" == *-linux-musl ]]; then
-		host_gnu_type="$(${CC:-cc} -dumpmachine 2>/dev/null || true)"
+		host_cc="$(command -v "${BOOTSTRAP_CC:-${CC:-cc}}")"
+		host_cxx="$(command -v "${BOOTSTRAP_CXX:-${CXX:-c++}}")"
+		host_ar="$(command -v "${BOOTSTRAP_AR:-${AR:-ar}}")"
+		host_ranlib="$(command -v "${BOOTSTRAP_RANLIB:-${RANLIB:-ranlib}}")"
+		host_gnu_type="$("${host_cc}" -dumpmachine 2>/dev/null || true)"
 		if [ -n "${host_gnu_type}" ]; then
-			host_cc="$(command -v "${host_gnu_type}-gcc" 2>/dev/null || true)"
-			host_cxx="$(command -v "${host_gnu_type}-g++" 2>/dev/null || command -v "${host_gnu_type}-c++" 2>/dev/null || true)"
-			if [ -n "${host_cc}" ] && [ -n "${host_cxx}" ]; then
-				if [ "${host_gnu_type}" = "${RUSTC_TARGET}" ]; then
-					target_cc="${host_cc}"
-					target_cxx="${host_cxx}"
-					target_linker="${host_cc}"
-				else
-					wrapper_dir="${PWD}/${WORKDIR}toolchain-bin"
-					mkdir -p "${wrapper_dir}"
-					target_cc="${wrapper_dir}/host-musl-cc"
-					target_cxx="${wrapper_dir}/host-musl-cxx"
-					target_linker="${target_cc}"
-					write_strip_target_wrapper "${target_cc}" "${host_cc}"
-					write_strip_target_wrapper "${target_cxx}" "${host_cxx}"
-				fi
-				cat - >> "${cfg_path}" <<EOF
+			if [ "${host_gnu_type}" = "${RUSTC_TARGET}" ]; then
+				target_cc="${host_cc}"
+				target_cxx="${host_cxx}"
+				target_linker="${host_cc}"
+			else
+				wrapper_dir="${PWD}/${WORKDIR}toolchain-bin"
+				mkdir -p "${wrapper_dir}"
+				target_cc="${wrapper_dir}/host-musl-cc"
+				target_cxx="${wrapper_dir}/host-musl-cxx"
+				target_linker="${target_cc}"
+				write_strip_target_wrapper "${target_cc}" "${host_cc}"
+				write_strip_target_wrapper "${target_cxx}" "${host_cxx}"
+			fi
+			cat - >> "${cfg_path}" <<EOF
 cc = "${target_cc}"
 cxx = "${target_cxx}"
+ar = "${host_ar}"
+ranlib = "${host_ranlib}"
 linker = "${target_linker}"
 llvm-libunwind = "in-tree"
 EOF
-			fi
 		fi
 		cat - >> "${cfg_path}" <<EOF
 crt-static = false
