@@ -170,12 +170,11 @@ clean:
 # Helper rules to ensure that mrustc has built rustc and cargo
 ../output$(OUTDIR_SUF)/rustc:
 	$(MAKE) -C ../ -f minicargo.mk output$(OUTDIR_SUF)/rustc
-../output$(OUTDIR_SUF)/cargo:
+../output$(OUTDIR_SUF)/cargo: | ../output$(OUTDIR_SUF)/rustc
 	$(MAKE) -C ../ -f minicargo.mk output$(OUTDIR_SUF)/cargo
 # The top-level rustc build also builds minicargo. Order this target after it
-# so parallel make cannot observe or rebuild a half-published binary.
+# so parallel make cannot observe a half-published binary.
 ../bin/minicargo$(EXESUF): | ../output$(OUTDIR_SUF)/rustc
-	$(MAKE) -C ../ -f minicargo.mk bin/minicargo$(EXESUF)
 	test -e $@
 $(RUST_SRC_HELLO):
 	$(MAKE) -C ../ RUSTCSRC

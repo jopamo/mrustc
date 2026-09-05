@@ -147,6 +147,11 @@ else ifeq ($(RUSTC_VERSION),1.29.0)
 else
   LLVM_DIR := src/llvm-project/llvm
 endif
+RUSTC_SRC_REQUIRED := $(RUSTCSRC)$(LLVM_DIR)/CMakeLists.txt
+ifeq ($(RUSTC_VERSION),1.90.0)
+  RUSTC_SRC_REQUIRED += $(RUSTCSRC)compiler/rustc_target/src/lib.rs
+  RUSTC_SRC_REQUIRED += $(RUSTCSRC)src/bootstrap/src/core/build_steps/compile.rs
+endif
 
 SRCDIR_RUSTC := src/rustc
 SRCDIR_RUSTC_DRIVER := src/librustc_driver
@@ -282,6 +287,15 @@ rustc-$(RUSTC_VERSION)-src/extracted: $(RUSTC_SRC_TARBALL)
 # Compare contents, not mtimes: a checkout churns mtimes and re-patching fails.
 $(RUSTC_SRC_DL): rustc-$(RUSTC_VERSION)-src/extracted rustc-$(RUSTC_VERSION)-src.patch scripts/fix_rust_libdir_symlink.py
 	@set -e; \
+	missing=; \
+	for path in $(RUSTC_SRC_REQUIRED); do \
+		if [ ! -e "$$path" ]; then missing=1; break; fi; \
+	done; \
+	if [ -n "$$missing" ]; then \
+		echo "[RECOVER] Re-extracting incomplete rustc-$(RUSTC_VERSION)-src"; \
+		rm -f rustc-$(RUSTC_VERSION)-src/extracted; \
+		$(MAKE) --no-print-directory -f minicargo.mk rustc-$(RUSTC_VERSION)-src/extracted; \
+	fi; \
 	if ! cmp -s rustc-$(RUSTC_VERSION)-src.patch $@; then \
 		echo [PATCH] rustc-$(RUSTC_VERSION)-src; \
 		files=`cat $@ rustc-$(RUSTC_VERSION)-src.patch 2>/dev/null | sed -n 's|^--- |$(RUSTCSRC)|p' | sort -u`; \
