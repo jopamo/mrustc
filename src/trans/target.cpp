@@ -1404,9 +1404,19 @@ namespace {
             switch(str.m_repr)
             {
             case ::HIR::Struct::Repr::C:
-            case ::HIR::Struct::Repr::Simd:
                 // No sorting, no packing
                 sorting = StructSorting::None;
+                break;
+            case ::HIR::Struct::Repr::Simd:
+                // SIMD vectors are aligned to their full vector width, not
+                // merely to the alignment of their element array.
+                sorting = StructSorting::None;
+                forced_alignment = 0;
+                for(const auto& e : ents)
+                {
+                    ASSERT_BUG(sp, e.size != SIZE_MAX, "Unsized field in repr(simd) type " << ty);
+                    forced_alignment += e.size;
+                }
                 break;
             case ::HIR::Struct::Repr::Transparent:
             case ::HIR::Struct::Repr::Rust:
