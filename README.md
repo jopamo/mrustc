@@ -43,6 +43,8 @@ To bootstrap the next validated compiler from the mrustc-built 1.90.0 toolchain,
 
 Once `output-1.91.1/` exists, you can keep walking forward with the official bootstrap using `./build-official-step.sh 1.91.1 1.92.0`, or build a whole chain with `./build-official-chain.sh 1.91.1 stable`. The configured shortest chain to current stable is `1.91.1 -> 1.92.0 -> 1.93.1 -> 1.94.1 -> 1.95.0 -> 1.96.1 -> 1.97.1 -> 1.98.1`.
 
+To install the newest completed build into `/opt/rust` (with its executables in `/opt/rust/bin`), run `./install-built-rust.sh`. Pass a version such as `./install-built-rust.sh 1.95.0` to select one explicitly. The full prefix is installed because the executables require the matching files under `/opt/rust/lib`. Run the script as root when `/opt` is not writable by your user.
+
 The bootstrap scripts also patch rustc/bootstrap so a sysroot installed under `/usr` still behaves correctly when `/usr/lib64` is just a symlink to `/usr/lib`.
 
 Dependencies
